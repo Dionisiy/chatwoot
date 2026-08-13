@@ -1,0 +1,16 @@
+{
+  "name": "slideedu-agent-bot",
+  "version": "0.1.0",
+  "description": "Кастомный Chatwoot Agent Bot: меню/формы по сценарию, без Rasa и без Enterprise-плана",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
