@@ -10,7 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 APP_NAME="slideedu-agent-bot"
-PORT="${PORT:-8000}"
 
 echo "==> git pull (текущая ветка репозитория)"
 git -C .. pull --ff-only
@@ -22,6 +21,11 @@ if [ ! -f .env ]; then
   echo "!! .env не найден — скопируйте .env.example в .env и заполните перед запуском." >&2
   exit 1
 fi
+
+# Порт берём из .env (а не угадываем) — health-check ниже должен стучаться
+# именно туда, куда реально слушает сам процесс.
+PORT="$(grep -E '^PORT=' .env | tail -1 | cut -d= -f2)"
+PORT="${PORT:-8000}"
 
 echo "==> pm2 ${APP_NAME}"
 if command -v pm2 >/dev/null 2>&1; then
