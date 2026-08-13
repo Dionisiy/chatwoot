@@ -83,7 +83,16 @@ async function handleEvent(payload) {
   // message_updated message_type всё ещё 'outgoing' — фильтровать по
   // incoming здесь нельзя, иначе все клики по кнопкам молча теряются.
   if (event === 'message_updated') {
-    const submittedValues = payload.content_attributes?.submitted_values;
+    const attrs = payload.content_attributes || {};
+    // Ответ на поле content_type: input_email — виджет кладёт его в
+    // submitted_email (см. messages_controller.rb#update:
+    // @message.update!(submitted_email: contact_email)), а не в
+    // submitted_values. Обрабатываем как обычный текстовый ответ — там уже
+    // есть та же regex-валидация формата и запись в state.formData.
+    if (attrs.submitted_email) {
+      return engine.handleTextAnswer(client, conversationId, attrs.submitted_email);
+    }
+    const submittedValues = attrs.submitted_values;
     if (!submittedValues?.length) return; // просто правка сообщения, не наш кейс
     const selected = submittedValues[0]?.value ?? submittedValues[0]?.id;
     return engine.handleOptionSelected(client, conversationId, selected);
