@@ -3,7 +3,15 @@ const axios = require('axios');
 // Тонкая обёртка над Application API Chatwoot.
 // Аутентификация — access token самого агент-бота (заголовок api_access_token),
 // см. app/controllers/api/base_controller.rb: authenticate_by_access_token?.
-function createChatwootClient({ baseUrl, accountId, token }) {
+//
+// adminToken (опционально) — тот же CHATWOOT_ADMIN_TOKEN, что и для /dashboard.
+// Нужен для GET /teams: у токенов AgentBot есть жёсткий whitelist разрешённых
+// эндпоинтов (app/controllers/concerns/access_token_auth_helper.rb,
+// BOT_ACCESSIBLE_ENDPOINTS) — там разрешён POST .../assignments, но НЕ разрешён
+// GET .../teams, так что бот получает 401 при попытке сам получить список
+// команд. Сам assignment (назначение) при этом делаем токеном бота — это
+// разрешённое и more корректное с точки зрения атрибуции действие.
+function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
   const http = axios.create({
     baseURL: `${baseUrl}/api/v1/accounts/${accountId}`,
     headers: {
@@ -12,6 +20,17 @@ function createChatwootClient({ baseUrl, accountId, token }) {
     },
     timeout: 10000,
   });
+
+  const adminHttp = adminToken
+    ? axios.create({
+        baseURL: `${baseUrl}/api/v1/accounts/${accountId}`,
+        headers: {
+          api_access_token: adminToken,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      })
+    : null;
 
   // Кэш имя-команды → team_id, чтобы не дёргать /teams на каждый submit.
   let teamsCache = null;
@@ -70,7 +89,17 @@ function createChatwootClient({ baseUrl, accountId, token }) {
     },
 
     async listTeams() {
-      const { data } = await http.get('/teams');
+      // GET /teams токеном бота даёт 401 (не в BOT_ACCESSIBLE_ENDPOINTS) —
+      // используем админский токен, если он задан в .env (CHATWOOT_ADMIN_TOKEN).
+      if (!adminHttp) {
+        console.warn(
+          '[chatwootClient] CHATWOOT_ADMIN_TOKEN не задан — бот не может ' +
+            'получить список команд (GET /teams запрещён для токена бота), ' +
+            'назначение на команду работать не будет.'
+        );
+        return [];
+      }
+      const { data } = await adminHttp.get('/teams');
       return data;
     },
 

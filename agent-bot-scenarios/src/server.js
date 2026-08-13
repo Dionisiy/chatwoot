@@ -12,6 +12,9 @@ const client = createChatwootClient({
   baseUrl: process.env.CHATWOOT_BASE_URL,
   accountId: process.env.CHATWOOT_ACCOUNT_ID,
   token: process.env.CHATWOOT_BOT_TOKEN,
+  // Нужен только для GET /teams внутри assignTeamByName — токену бота этот
+  // эндпоинт запрещён платформой (см. комментарий в chatwootClient.js).
+  adminToken: process.env.CHATWOOT_ADMIN_TOKEN,
 });
 
 // /dashboard дёргает /reports/summary — этот эндпоинт в Chatwoot доступен
