@@ -36,7 +36,12 @@ function createChatwootClient({ baseUrl, accountId, token }) {
       });
     },
 
-    // Меню кнопок. items: [{ id, title, value }]
+    // Меню кнопок. items: [{ id, title, value }] — id используется только
+    // внутри движка (engine.js) для сопоставления с выбором пользователя;
+    // наружу в Chatwoot уходят только title/value — ContentAttributeValidator
+    // (app/models/concerns/content_attribute_validator.rb) для content_type
+    // 'input_select' разрешает исключительно эти два ключа и отклоняет
+    // сообщение 422-й с "contains invalid keys for items" при любом другом.
     // content_type: 'input_select' — рендерится ChatOptions.vue на виджете
     // (app/javascript/widget/components/AgentMessageBubble.vue).
     async sendMenu(conversationId, title, items) {
@@ -44,7 +49,7 @@ function createChatwootClient({ baseUrl, accountId, token }) {
         content: title,
         message_type: 'outgoing',
         content_type: 'input_select',
-        content_attributes: { items },
+        content_attributes: { items: items.map(({ title: t, value }) => ({ title: t, value })) },
       });
     },
 
