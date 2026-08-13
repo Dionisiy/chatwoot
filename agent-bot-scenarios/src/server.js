@@ -76,30 +76,34 @@ async function handleEvent(payload) {
   const conversationId = payload.conversation?.id;
   if (!conversationId) return;
 
-  // Реагируем только на сообщения от контакта. message_created/message_updated
-  // прилетают и для исходящих сообщений самого бота — их игнорируем, иначе
-  // получим бесконечный цикл (см. app/listeners/agent_bot_listener.rb).
-  if (payload.message_type !== 'incoming') return;
+  // Клик по quick-reply кнопке (input_select) не создаёт новое сообщение —
+  // виджет патчит submitted_values на ТОМ ЖЕ исходящем сообщении бота
+  // (см. app/controllers/api/v1/widget/messages_controller.rb#update:
+  // @message.update!(message_update_params[:message])). Поэтому у такого
+  // message_updated message_type всё ещё 'outgoing' — фильтровать по
+  // incoming здесь нельзя, иначе все клики по кнопкам молча теряются.
+  if (event === 'message_updated') {
+    const submittedValues = payload.content_attributes?.submitted_values;
+    if (!submittedValues?.length) return; // просто правка сообщения, не наш кейс
+    const selected = submittedValues[0]?.value ?? submittedValues[0]?.id;
+    return engine.handleOptionSelected(client, conversationId, selected);
+  }
 
   if (event === 'message_created') {
+    // А вот здесь фильтр обязателен: message_created прилетает и для
+    // исходящих сообщений самого бота — без этой проверки был бы
+    // бесконечный цикл (см. app/listeners/agent_bot_listener.rb).
+    if (payload.message_type !== 'incoming') return;
     const submittedValues = payload.content_attributes?.submitted_values;
     if (submittedValues?.length) {
-      // На всякий случай — обычно submitted_values приходят в message_updated,
-      // но подстрахуемся, если конкретный канал шлёт иначе.
+      // На всякий случай, если какой-то канал всё же шлёт submitted_values
+      // через message_created, а не message_updated.
       const selected = submittedValues[0]?.value ?? submittedValues[0]?.id;
       return engine.handleOptionSelected(client, conversationId, selected);
     }
     if (payload.content) {
       return engine.handleTextAnswer(client, conversationId, payload.content);
     }
-    return;
-  }
-
-  if (event === 'message_updated') {
-    const submittedValues = payload.content_attributes?.submitted_values;
-    if (!submittedValues?.length) return; // просто правка сообщения, не наш кейс
-    const selected = submittedValues[0]?.value ?? submittedValues[0]?.id;
-    return engine.handleOptionSelected(client, conversationId, selected);
   }
 }
 
