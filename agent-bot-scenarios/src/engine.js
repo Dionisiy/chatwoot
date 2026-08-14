@@ -1,4 +1,7 @@
-const flows = require('./flows');
+// flows читается через getFlows() внутри каждой функции (а не одной константой
+// на уровне модуля) — так правки, сохранённые из /admin (см. flowStore.js),
+// подхватываются следующим же сообщением, без перезапуска pm2-процесса.
+const { getFlows } = require('./flowStore');
 const store = require('./store');
 
 const BACK_ID = '__back__';
@@ -23,6 +26,7 @@ function freshState() {
 }
 
 async function renderNode(client, conversationId, nodeId, state) {
+  const flows = getFlows();
   const node = flows[nodeId] || flows.main_menu;
   const resolvedId = flows[nodeId] ? nodeId : 'main_menu';
 
@@ -121,6 +125,7 @@ async function startFlow(client, conversationId) {
 
 // Пользователь нажал кнопку (menu-опцию, "Назад" или "Главное меню")
 async function handleOptionSelected(client, conversationId, selectedId) {
+  const flows = getFlows();
   const state = store.get(conversationId) || freshState();
 
   if (selectedId === MENU_ID) {
@@ -157,6 +162,7 @@ async function handleOptionSelected(client, conversationId, selectedId) {
 // Пользователь напечатал свободный текст (ответ на question-шаг,
 // либо самое первое сообщение в диалоге)
 async function handleTextAnswer(client, conversationId, text) {
+  const flows = getFlows();
   const state = store.get(conversationId);
 
   if (!state) {

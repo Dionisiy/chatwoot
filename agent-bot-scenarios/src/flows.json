@@ -1,0 +1,661 @@
+{
+  "main_menu": {
+    "type": "menu",
+    "title": "Добрый день, выберите вариант",
+    "options": [
+      {
+        "id": "consult",
+        "title": "Запись на консультацию",
+        "next": "consult_start"
+      },
+      {
+        "id": "payment_problem",
+        "title": "Проблема с платежами",
+        "next": "payment_problem_menu"
+      },
+      {
+        "id": "fop",
+        "title": "Вопросы по ведению ФОП",
+        "next": "fop_intro"
+      },
+      {
+        "id": "finance_docs",
+        "title": "Получение финансовых документов",
+        "next": "finance_docs_menu"
+      },
+      {
+        "id": "general",
+        "title": "Общие финансовые вопросы",
+        "next": "general_intro"
+      }
+    ]
+  },
+  "payment_problem_menu": {
+    "type": "menu",
+    "title": "Проблема с платежами",
+    "options": [
+      {
+        "id": "wrong_amount",
+        "title": "Поступила неправильная сумма ЗП",
+        "next": "wrong_amount_intro"
+      },
+      {
+        "id": "missing_bonus",
+        "title": "Не учтен бонус",
+        "next": "missing_bonus_intro"
+      }
+    ]
+  },
+  "finance_docs_menu": {
+    "type": "menu",
+    "title": "Получение финансовых документов",
+    "options": [
+      {
+        "id": "income_cert",
+        "title": "Справка о доходах",
+        "next": "income_cert_intro"
+      },
+      {
+        "id": "invoice",
+        "title": "Оформление инвойса",
+        "next": "invoice_intro"
+      },
+      {
+        "id": "salary_stmt",
+        "title": "Выписка ЗП за период",
+        "next": "salary_stmt_intro"
+      }
+    ]
+  },
+  "consult_start": {
+    "type": "menu",
+    "title": "Запись на консультацию",
+    "options": [
+      {
+        "id": "open_fop",
+        "title": "Открыть ФОП",
+        "next": "consult_training_check"
+      },
+      {
+        "id": "close_fop",
+        "title": "Закрыть ФОП",
+        "next": "consult_calendar"
+      },
+      {
+        "id": "requisites_pick",
+        "title": "Подбор реквизитов",
+        "next": "consult_calendar"
+      }
+    ]
+  },
+  "consult_training_check": {
+    "type": "menu",
+    "title": "Прошли ли вы обучение на платформе THI: \"Как открыть ФОП и как оплачивать налоги\"?",
+    "options": [
+      {
+        "id": "yes",
+        "title": "Да",
+        "next": "consult_calendar"
+      },
+      {
+        "id": "no",
+        "title": "Нет",
+        "next": "consult_curator"
+      }
+    ]
+  },
+  "consult_calendar": {
+    "type": "link",
+    "text": "Перейдите в календарь и заполните форму",
+    "url": null,
+    "linkTitle": "Календарь"
+  },
+  "consult_curator": {
+    "type": "end",
+    "text": "Обратитесь к вашему куратору, чтобы пройти обучение перед записью на консультацию."
+  },
+  "wrong_amount_intro": {
+    "type": "message",
+    "text": "Нужно заполнить данные для подачи заявки",
+    "next": "wrong_amount_email"
+  },
+  "wrong_amount_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "wrong_amount_position"
+  },
+  "wrong_amount_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "wrong_amount_manager"
+  },
+  "wrong_amount_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "wrong_amount_name"
+  },
+  "wrong_amount_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "wrong_amount_period_start"
+  },
+  "wrong_amount_period_start": {
+    "type": "question",
+    "prompt": "Выберите дату начала периода",
+    "field": {
+      "name": "period_start",
+      "type": "text"
+    },
+    "next": "wrong_amount_period_end"
+  },
+  "wrong_amount_period_end": {
+    "type": "question",
+    "prompt": "Выберите дату конца периода",
+    "field": {
+      "name": "period_end",
+      "type": "text"
+    },
+    "next": "wrong_amount_currency"
+  },
+  "wrong_amount_currency": {
+    "type": "question",
+    "prompt": "Выберите валюту в которой была начислена сумма",
+    "field": {
+      "name": "currency",
+      "type": "select",
+      "options": [
+        "Злотые",
+        "Доллар",
+        "Гривна"
+      ]
+    },
+    "next": "wrong_amount_actual"
+  },
+  "wrong_amount_actual": {
+    "type": "question",
+    "prompt": "Напишите фактическую сумму начисления",
+    "field": {
+      "name": "actual_amount",
+      "type": "text"
+    },
+    "next": "wrong_amount_expected"
+  },
+  "wrong_amount_expected": {
+    "type": "question",
+    "prompt": "Напишите сколько должны были получить по отчёту?",
+    "field": {
+      "name": "expected_amount",
+      "type": "text"
+    },
+    "next": "wrong_amount_submit"
+  },
+  "wrong_amount_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Поступила неправильная сумма ЗП"
+  },
+  "missing_bonus_intro": {
+    "type": "message",
+    "text": "Нужно заполнить данные для подачи заявки",
+    "next": "missing_bonus_email"
+  },
+  "missing_bonus_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "missing_bonus_position"
+  },
+  "missing_bonus_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "missing_bonus_manager"
+  },
+  "missing_bonus_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "missing_bonus_name"
+  },
+  "missing_bonus_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "missing_bonus_period_start"
+  },
+  "missing_bonus_period_start": {
+    "type": "question",
+    "prompt": "Выберите дату начала периода",
+    "field": {
+      "name": "period_start",
+      "type": "text"
+    },
+    "next": "missing_bonus_period_end"
+  },
+  "missing_bonus_period_end": {
+    "type": "question",
+    "prompt": "Выберите дату конца периода",
+    "field": {
+      "name": "period_end",
+      "type": "text"
+    },
+    "next": "missing_bonus_amount"
+  },
+  "missing_bonus_amount": {
+    "type": "question",
+    "prompt": "Напишите сумму начисления",
+    "field": {
+      "name": "amount",
+      "type": "text"
+    },
+    "next": "missing_bonus_project"
+  },
+  "missing_bonus_project": {
+    "type": "question",
+    "prompt": "По какому проекту?",
+    "field": {
+      "name": "project",
+      "type": "text"
+    },
+    "next": "missing_bonus_submit"
+  },
+  "missing_bonus_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Не учтен бонус"
+  },
+  "general_intro": {
+    "type": "message",
+    "text": "Добрый день, если у вас есть общие финансовые вопросы можете задать их тут\n\nДля создания заявки нужно заполнить данные",
+    "next": "general_email"
+  },
+  "general_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "general_position"
+  },
+  "general_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "general_manager"
+  },
+  "general_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "general_name"
+  },
+  "general_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "general_problem"
+  },
+  "general_problem": {
+    "type": "question",
+    "prompt": "Опишите вашу проблему",
+    "field": {
+      "name": "problem",
+      "type": "text"
+    },
+    "next": "general_submit"
+  },
+  "general_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Общие вопросы"
+  },
+  "income_cert_intro": {
+    "type": "message",
+    "text": "Нужно заполнить данные для подачи заявки",
+    "next": "income_cert_email"
+  },
+  "income_cert_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "income_cert_position"
+  },
+  "income_cert_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "income_cert_manager"
+  },
+  "income_cert_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "income_cert_name"
+  },
+  "income_cert_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "income_cert_period"
+  },
+  "income_cert_period": {
+    "type": "question",
+    "prompt": "За какой период нужна справка?",
+    "field": {
+      "name": "period",
+      "type": "text"
+    },
+    "next": "income_cert_purpose"
+  },
+  "income_cert_purpose": {
+    "type": "question",
+    "prompt": "Куда предоставляется справка?",
+    "field": {
+      "name": "purpose",
+      "type": "text"
+    },
+    "next": "income_cert_submit"
+  },
+  "income_cert_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Справка о доходах"
+  },
+  "invoice_intro": {
+    "type": "message",
+    "text": "Нужно заполнить данные для подачи заявки",
+    "next": "invoice_email"
+  },
+  "invoice_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "invoice_position"
+  },
+  "invoice_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "invoice_manager"
+  },
+  "invoice_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "invoice_name"
+  },
+  "invoice_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "invoice_details"
+  },
+  "invoice_details": {
+    "type": "question",
+    "prompt": "Укажите реквизиты для инвойса",
+    "field": {
+      "name": "invoice_details",
+      "type": "text"
+    },
+    "next": "invoice_amount"
+  },
+  "invoice_amount": {
+    "type": "question",
+    "prompt": "Укажите сумму инвойса",
+    "field": {
+      "name": "amount",
+      "type": "text"
+    },
+    "next": "invoice_submit"
+  },
+  "invoice_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Оформление инвойса"
+  },
+  "salary_stmt_intro": {
+    "type": "message",
+    "text": "Нужно заполнить данные для подачи заявки",
+    "next": "salary_stmt_email"
+  },
+  "salary_stmt_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "salary_stmt_position"
+  },
+  "salary_stmt_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "salary_stmt_manager"
+  },
+  "salary_stmt_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "salary_stmt_name"
+  },
+  "salary_stmt_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "salary_stmt_period_start"
+  },
+  "salary_stmt_period_start": {
+    "type": "question",
+    "prompt": "Выберите дату начала периода",
+    "field": {
+      "name": "period_start",
+      "type": "text"
+    },
+    "next": "salary_stmt_period_end"
+  },
+  "salary_stmt_period_end": {
+    "type": "question",
+    "prompt": "Выберите дату конца периода",
+    "field": {
+      "name": "period_end",
+      "type": "text"
+    },
+    "next": "salary_stmt_submit"
+  },
+  "salary_stmt_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Выписка ЗП за период"
+  },
+  "requisites_intro": {
+    "type": "message",
+    "text": "Нужно заполнить данные для подачи заявки",
+    "next": "requisites_email"
+  },
+  "requisites_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "requisites_position"
+  },
+  "requisites_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "requisites_manager"
+  },
+  "requisites_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "requisites_name"
+  },
+  "requisites_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "requisites_old"
+  },
+  "requisites_old": {
+    "type": "question",
+    "prompt": "Укажите текущие реквизиты",
+    "field": {
+      "name": "old_requisites",
+      "type": "text"
+    },
+    "next": "requisites_new"
+  },
+  "requisites_new": {
+    "type": "question",
+    "prompt": "Укажите новые реквизиты",
+    "field": {
+      "name": "new_requisites",
+      "type": "text"
+    },
+    "next": "requisites_submit"
+  },
+  "requisites_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Смена реквизитов"
+  },
+  "fop_intro": {
+    "type": "message",
+    "text": "Нужно заполнить данные для подачи заявки",
+    "next": "fop_email"
+  },
+  "fop_email": {
+    "type": "question",
+    "prompt": "Укажите ваш email который предоставили для регистрации в школе. Его можно уточнить у куратора",
+    "field": {
+      "name": "email",
+      "type": "email"
+    },
+    "next": "fop_position"
+  },
+  "fop_position": {
+    "type": "question",
+    "prompt": "Укажите вашу должность",
+    "field": {
+      "name": "position",
+      "type": "text"
+    },
+    "next": "fop_manager"
+  },
+  "fop_manager": {
+    "type": "question",
+    "prompt": "Укажите вашего руководителя",
+    "field": {
+      "name": "manager",
+      "type": "text"
+    },
+    "next": "fop_name"
+  },
+  "fop_name": {
+    "type": "question",
+    "prompt": "Введите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "fop_problem"
+  },
+  "fop_problem": {
+    "type": "question",
+    "prompt": "Опишите ваш вопрос по ведению ФОП",
+    "field": {
+      "name": "problem",
+      "type": "text"
+    },
+    "next": "fop_submit"
+  },
+  "fop_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "group": "Финансы - Вопросы по ведению ФОП"
+  }
+}

@@ -5,6 +5,8 @@ const { verifySignature } = require('./verifySignature');
 const engine = require('./engine');
 const { buildDashboardData } = require('./dashboard');
 const { renderDashboardHtml } = require('./dashboardView');
+const { renderAdminHtml } = require('./adminUi');
+const flowStore = require('./flowStore');
 
 const PORT = process.env.PORT || 8000;
 
@@ -58,6 +60,64 @@ app.get('/dashboard', async (_req, res) => {
   } catch (err) {
     console.error('[dashboard] failed:', err.message);
     res.status(500).send(`Не удалось собрать дашборд: ${err.message}`);
+  }
+});
+
+// Basic Auth для /admin — редактор пишет прямо в flows.json, который движок
+// подхватывает без рестарта, так что доступ туда эквивалентен доступу к коду
+// бота. ADMIN_UI_USER/ADMIN_UI_PASSWORD задаются в .env (см. .env.example).
+function requireAdminAuth(req, res, next) {
+  const user = process.env.ADMIN_UI_USER;
+  const pass = process.env.ADMIN_UI_PASSWORD;
+  if (!user || !pass) {
+    res.status(500).send(
+      'ADMIN_UI_USER / ADMIN_UI_PASSWORD не заданы в .env — см. README → "Редактор сценария".'
+    );
+    return;
+  }
+  const header = req.headers.authorization || '';
+  const [scheme, encoded] = header.split(' ');
+  if (scheme === 'Basic' && encoded) {
+    const [reqUser, reqPass] = Buffer.from(encoded, 'base64').toString('utf8').split(':');
+    if (reqUser === user && reqPass === pass) return next();
+  }
+  res.set('WWW-Authenticate', 'Basic realm="SlideEdu Bot Admin"');
+  res.status(401).send('Требуется авторизация.');
+}
+
+app.get('/admin', requireAdminAuth, async (_req, res) => {
+  try {
+    const flows = flowStore.reloadFlows();
+    let teamNames = [];
+    if (dashboardClient) {
+      try {
+        teamNames = (await dashboardClient.listTeams()).map(t => t.name);
+      } catch (err) {
+        console.error('[admin] listTeams failed:', err.message);
+      }
+    }
+    res.send(renderAdminHtml({ flows, teamNames }));
+  } catch (err) {
+    console.error('[admin] failed:', err.message);
+    res.status(500).send(`Не удалось открыть редактор: ${err.message}`);
+  }
+});
+
+app.get('/admin/api/flows', requireAdminAuth, (_req, res) => {
+  res.json(flowStore.reloadFlows());
+});
+
+app.post('/admin/api/flows', requireAdminAuth, (req, res) => {
+  try {
+    flowStore.saveFlows(req.body);
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.validationErrors) {
+      res.status(422).json({ error: err.message, errors: err.validationErrors });
+      return;
+    }
+    console.error('[admin] saveFlows failed:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
