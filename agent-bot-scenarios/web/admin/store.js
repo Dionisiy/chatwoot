@@ -34,11 +34,16 @@ export async function loadAll() {
   state.loading = true;
   state.loadError = null;
   try {
+    // Относительные пути без ведущего слэша — принципиально, см. комментарий
+    // у app.get('/admin', ...) в server.js: под nginx-прокси /agent-bot/
+    // абсолютный путь вида "/admin/api/flows" уходит мимо прокси на корень
+    // домена. Резолвится корректно только потому, что сервер отдаёт эту
+    // страницу исключительно с "/" на конце (редиректит бы иначе).
     const [flowsRes, teamsRes] = await Promise.all([
-      fetch('/admin/api/flows'),
-      fetch('/admin/api/teams'),
+      fetch('api/flows'),
+      fetch('api/teams'),
     ]);
-    if (!flowsRes.ok) throw new Error(`GET /admin/api/flows: ${flowsRes.status}`);
+    if (!flowsRes.ok) throw new Error(`GET api/flows: ${flowsRes.status}`);
     state.flows = await flowsRes.json();
     state.teamNames = teamsRes.ok ? await teamsRes.json() : [];
   } catch (err) {
@@ -52,7 +57,7 @@ export async function save() {
   state.saving = true;
   state.saveStatus = null;
   try {
-    const res = await fetch('/admin/api/flows', {
+    const res = await fetch('api/flows', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(state.flows),

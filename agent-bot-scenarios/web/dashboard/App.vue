@@ -12,7 +12,9 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    const res = await fetch('/dashboard/api/data');
+    // Без ведущего слэша — см. комментарий у app.get('/dashboard', ...) в
+    // server.js (nginx-прокси /agent-bot/ + относительные пути).
+    const res = await fetch('api/data');
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
     data.value = body;

@@ -45,6 +45,13 @@ const dashboardClient = process.env.CHATWOOT_ADMIN_TOKEN
 
 const app = express();
 
+// По умолчанию Express считает "/admin" и "/admin/" одним и тем же
+// маршрутом (strict routing выключен) — тогда первый зарегистрированный
+// обработчик (редирект без слэша) перехватывает и версию со слэшем тоже, и
+// сама страница никогда не отдаётся. Нужно различать их по-настоящему: без
+// слэша — редирект, со слэшем — контент (см. комментарий у app.get('/admin', ...) ниже).
+app.set('strict routing', true);
+
 // Сохраняем raw body — нужен для проверки HMAC-подписи Chatwoot.
 app.use(
   express.json({
@@ -56,17 +63,29 @@ app.use(
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// Общие для /admin и /dashboard собранные JS/CSS (Vite кладёт их в один
-// dist/assets/ независимо от страницы) — без авторизации: сам бандл не
-// содержит данных аккаунта, только код; данные идут через отдельные
-// JSON-эндпоинты ниже, которые уже под своей защитой (или её отсутствием —
-// см. комментарий у /dashboard/api/data).
-app.use('/assets', express.static(path.join(DIST_DIR, 'assets')));
+// vite.config.js собирает /admin и /dashboard с base: './' (относительные
+// пути к ассетам и fetch()-запросы внутри Vue-приложений идут без ведущего
+// слэша) — это принципиально из-за nginx-прокси на дроплете (location
+// /agent-bot/ { proxy_pass http://127.0.0.1:8010/; }, префикс обрезается,
+// сам Node о нём не знает). Относительные пути браузер резолвит от текущего
+// URL страницы — а он резолвится по-разному в зависимости от того, есть ли
+// на конце "/": ".../agent-bot/admin" (без слэша) — "admin" в резолвинге
+// считается файлом и отбрасывается, ".../agent-bot/dashboard" — тоже. Чтобы
+// и ассеты (./assets/x.js), и API (api/flows) резолвились ОДИНАКОВО как
+// "вложенные" в /admin/ или /dashboard/, а не как соседи по /agent-bot/,
+// оба маршрута обязаны отдаваться именно с "/" на конце — отсюда редиректы
+// ниже. Без них GET .../agent-bot/admin/api/flows превращался бы в
+// .../agent-bot/api/flows, мимо всех маршрутов.
+app.get('/admin', requireAdminAuth, (_req, res) => res.redirect(302, 'admin/'));
+app.get('/dashboard', (_req, res) => res.redirect(302, 'dashboard/'));
+
+app.use('/admin/assets', express.static(path.join(DIST_DIR, 'assets')));
+app.use('/dashboard/assets', express.static(path.join(DIST_DIR, 'assets')));
 
 // /dashboard как был открыт без авторизации, так и остаётся — доступ к нему
 // не запрашивали, страница держится на своём собственном CHATWOOT_ADMIN_TOKEN
 // на сервере, а не на личных правах того, кто её открыл.
-app.get('/dashboard', (_req, res) => {
+app.get('/dashboard/', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'dashboard.html'));
 });
 
@@ -150,7 +169,7 @@ async function requireAdminAuth(req, res, next) {
   }
 }
 
-app.get('/admin', requireAdminAuth, (_req, res) => {
+app.get('/admin/', requireAdminAuth, (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'admin.html'));
 });
 
