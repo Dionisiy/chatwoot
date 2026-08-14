@@ -99,6 +99,11 @@ function renderAdminHtml({ flows, teamNames }) {
   </div>
 
 <script>
+function esc(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
 var flows = ${flowsJson};
 var teamNames = ${teamsJson};
 var selectedId = null;
