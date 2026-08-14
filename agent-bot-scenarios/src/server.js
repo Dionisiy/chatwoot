@@ -1,14 +1,18 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const { createChatwootClient, verifyAdminToken } = require('./chatwootClient');
 const { verifySignature } = require('./verifySignature');
 const engine = require('./engine');
 const { buildDashboardData } = require('./dashboard');
-const { renderDashboardHtml } = require('./dashboardView');
-const { renderAdminHtml } = require('./adminUi');
 const flowStore = require('./flowStore');
 
 const PORT = process.env.PORT || 8000;
+
+// /admin и /dashboard — собранные Vue-приложения (см. web/, vite.config.js).
+// `npm run build` (часть deploy.sh) кладёт их сюда; в самом Node ничего не
+// собирается на лету.
+const DIST_DIR = path.join(__dirname, '..', 'dist');
 
 const client = createChatwootClient({
   baseUrl: process.env.CHATWOOT_BASE_URL,
@@ -29,6 +33,13 @@ const dashboardClient = process.env.CHATWOOT_ADMIN_TOKEN
       baseUrl: process.env.CHATWOOT_BASE_URL,
       accountId: process.env.CHATWOOT_ACCOUNT_ID,
       token: process.env.CHATWOOT_ADMIN_TOKEN,
+      // listTeams() внутри chatwootClient.js жёстко требует adminHttp (иначе
+      // молча возвращает [] — это специально для токена БОТА, которому
+      // GET /teams запрещён). token этого клиента и так уже админский, но
+      // без явного adminToken тут adminHttp не создаётся, и раздел "по
+      // командам" в /dashboard всегда был пустым. Передаём тот же токен
+      // вторым параметром, чтобы listTeams() реально сработал.
+      adminToken: process.env.CHATWOOT_ADMIN_TOKEN,
     })
   : null;
 
@@ -45,21 +56,48 @@ app.use(
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-app.get('/dashboard', async (_req, res) => {
+// Общие для /admin и /dashboard собранные JS/CSS (Vite кладёт их в один
+// dist/assets/ независимо от страницы) — без авторизации: сам бандл не
+// содержит данных аккаунта, только код; данные идут через отдельные
+// JSON-эндпоинты ниже, которые уже под своей защитой (или её отсутствием —
+// см. комментарий у /dashboard/api/data).
+app.use('/assets', express.static(path.join(DIST_DIR, 'assets')));
+
+// /dashboard как был открыт без авторизации, так и остаётся — доступ к нему
+// не запрашивали, страница держится на своём собственном CHATWOOT_ADMIN_TOKEN
+// на сервере, а не на личных правах того, кто её открыл.
+app.get('/dashboard', (_req, res) => {
+  res.sendFile(path.join(DIST_DIR, 'dashboard.html'));
+});
+
+// clients[].teams и элементы weeklyTrend — Map (см. dashboard.js), а
+// JSON.stringify(Map) даёт '{}'. Разворачиваем в обычные объекты/массивы
+// перед отправкой — это чисто вопрос сериализации, buildDashboardData саму
+// логику агрегации не меняет.
+function serializeDashboardData(data) {
+  return {
+    ...data,
+    clients: data.clients.map(c => ({ ...c, teams: Object.fromEntries(c.teams) })),
+    weeklyTrend: data.weeklyTrend.map(([week, teamMap]) => [week, Object.fromEntries(teamMap)]),
+  };
+}
+
+app.get('/dashboard/api/data', async (_req, res) => {
   if (!dashboardClient) {
-    res.status(500).send(
-      'CHATWOOT_ADMIN_TOKEN не задан в .env — нужен личный API-токен ' +
+    res.status(500).json({
+      error:
+        'CHATWOOT_ADMIN_TOKEN не задан в .env — нужен личный API-токен ' +
         'администратора (Chatwoot → Profile Settings → Access Token), ' +
-        'см. README → "Дашборд статистики".'
-    );
+        'см. README → "Дашборд статистики".',
+    });
     return;
   }
   try {
     const data = await buildDashboardData(dashboardClient);
-    res.send(renderDashboardHtml(data));
+    res.json(serializeDashboardData(data));
   } catch (err) {
     console.error('[dashboard] failed:', err.message);
-    res.status(500).send(`Не удалось собрать дашборд: ${err.message}`);
+    res.status(500).json({ error: `Не удалось собрать дашборд: ${err.message}` });
   }
 });
 
@@ -112,21 +150,20 @@ async function requireAdminAuth(req, res, next) {
   }
 }
 
-app.get('/admin', requireAdminAuth, async (_req, res) => {
+app.get('/admin', requireAdminAuth, (_req, res) => {
+  res.sendFile(path.join(DIST_DIR, 'admin.html'));
+});
+
+app.get('/admin/api/teams', requireAdminAuth, async (_req, res) => {
+  if (!dashboardClient) {
+    res.json([]);
+    return;
+  }
   try {
-    const flows = flowStore.reloadFlows();
-    let teamNames = [];
-    if (dashboardClient) {
-      try {
-        teamNames = (await dashboardClient.listTeams()).map(t => t.name);
-      } catch (err) {
-        console.error('[admin] listTeams failed:', err.message);
-      }
-    }
-    res.send(renderAdminHtml({ flows, teamNames }));
+    res.json((await dashboardClient.listTeams()).map(t => t.name));
   } catch (err) {
-    console.error('[admin] failed:', err.message);
-    res.status(500).send(`Не удалось открыть редактор: ${err.message}`);
+    console.error('[admin] listTeams failed:', err.message);
+    res.json([]);
   }
 });
 

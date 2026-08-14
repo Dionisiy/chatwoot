@@ -1,0 +1,44 @@
+/* Общая палитра для /admin и /dashboard — то же самое, что раньше было
+   зашито в dashboardView.js/adminUi.js, просто вынесено в переменные, чтобы
+   не дублировать хардкод в каждом .vue компоненте. */
+:root {
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --border: #e2e8f0;
+  --border-soft: #eef2f7;
+  --muted: #64748b;
+  --muted-2: #94a3b8;
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+
+  --badge-menu: #2563eb;
+  --badge-question: #7c3aed;
+  --badge-message: #64748b;
+  --badge-link: #0d9488;
+  --badge-end: #dc2626;
+  --badge-submit: #16a34a;
+
+  --chart-1: #4f46e5;
+  --chart-2: #0ea5e9;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --chart-6: #8b5cf6;
+  --chart-7: #14b8a6;
+  --chart-8: #f97316;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--border-soft); text-align: left; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted-2); font-size: 12px; }

@@ -17,6 +17,9 @@ git -C .. pull --ff-only
 echo "==> npm install"
 npm install
 
+echo "==> npm run build (Vue-фронтенд /admin и /dashboard, см. vite.config.js)"
+npm run build
+
 if [ ! -f .env ]; then
   echo "!! .env не найден — скопируйте .env.example в .env и заполните перед запуском." >&2
   exit 1
