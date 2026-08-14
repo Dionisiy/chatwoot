@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { createChatwootClient } = require('./chatwootClient');
+const { createChatwootClient, verifyAdminToken } = require('./chatwootClient');
 const { verifySignature } = require('./verifySignature');
 const engine = require('./engine');
 const { buildDashboardData } = require('./dashboard');
@@ -63,26 +63,53 @@ app.get('/dashboard', async (_req, res) => {
   }
 });
 
-// Basic Auth для /admin — редактор пишет прямо в flows.json, который движок
-// подхватывает без рестарта, так что доступ туда эквивалентен доступу к коду
-// бота. ADMIN_UI_USER/ADMIN_UI_PASSWORD задаются в .env (см. .env.example).
-function requireAdminAuth(req, res, next) {
-  const user = process.env.ADMIN_UI_USER;
-  const pass = process.env.ADMIN_UI_PASSWORD;
-  if (!user || !pass) {
-    res.status(500).send(
-      'ADMIN_UI_USER / ADMIN_UI_PASSWORD не заданы в .env — см. README → "Редактор сценария".'
-    );
-    return;
-  }
+// Доступ к /admin — не отдельный общий пароль, а личный access token живого
+// администратора Chatwoot (Profile Settings → Access Token), введённый в
+// Basic Auth диалоге браузера как пароль (логин — любой, не проверяется, там
+// принято вводить свой email/имя для удобства). Проверяется живьём через
+// Chatwoot API на каждый запрос (см. verifyAdminToken в chatwootClient.js) —
+// так редактор пускает ровно тех, у кого и так есть права администратора в
+// самом Chatwoot, без отдельной учётки. Короткий in-memory кэш — чтобы не
+// дёргать Chatwoot на каждый из нескольких запросов одной сессии в редакторе
+// (загрузка страницы + GET/POST /admin/api/flows).
+const ADMIN_TOKEN_CACHE_TTL_MS = 5 * 60 * 1000;
+const adminTokenCache = new Map(); // token -> { ok, expiresAt }
+
+async function requireAdminAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const [scheme, encoded] = header.split(' ');
-  if (scheme === 'Basic' && encoded) {
-    const [reqUser, reqPass] = Buffer.from(encoded, 'base64').toString('utf8').split(':');
-    if (reqUser === user && reqPass === pass) return next();
+  const token = scheme === 'Basic' && encoded
+    ? Buffer.from(encoded, 'base64').toString('utf8').split(':')[1]
+    : null;
+
+  if (!token) {
+    res.set('WWW-Authenticate', 'Basic realm="SlideEdu Bot Admin"');
+    res.status(401).send('Требуется авторизация: пароль — ваш личный access token администратора Chatwoot.');
+    return;
   }
-  res.set('WWW-Authenticate', 'Basic realm="SlideEdu Bot Admin"');
-  res.status(401).send('Требуется авторизация.');
+
+  const cached = adminTokenCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) {
+    if (cached.ok) return next();
+    res.set('WWW-Authenticate', 'Basic realm="SlideEdu Bot Admin"');
+    res.status(401).send('Токен не подтверждён как токен администратора Chatwoot.');
+    return;
+  }
+
+  try {
+    const ok = await verifyAdminToken({
+      baseUrl: process.env.CHATWOOT_BASE_URL,
+      accountId: process.env.CHATWOOT_ACCOUNT_ID,
+      token,
+    });
+    adminTokenCache.set(token, { ok, expiresAt: Date.now() + ADMIN_TOKEN_CACHE_TTL_MS });
+    if (ok) return next();
+    res.set('WWW-Authenticate', 'Basic realm="SlideEdu Bot Admin"');
+    res.status(401).send('Токен не подтверждён как токен администратора Chatwoot.');
+  } catch (err) {
+    console.error('[admin] verifyAdminToken failed:', err.message);
+    res.status(502).send('Не удалось проверить токен через Chatwoot API: ' + err.message);
+  }
 }
 
 app.get('/admin', requireAdminAuth, async (_req, res) => {

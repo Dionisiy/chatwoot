@@ -162,4 +162,30 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
   };
 }
 
-module.exports = { createChatwootClient };
+// Проверка для /admin (см. server.js#requireAdminAuth): токен, введённый в
+// диалоге Basic Auth как пароль, — это личный access token живого
+// администратора Chatwoot (Profile Settings → Access Token), а не отдельный
+// пароль. GET /webhooks выбран как проверочный запрос осознанно — он
+// admin-only (WebhookPolicy#index? → @account_user.administrator?, см.
+// app/policies/webhook_policy.rb) и не имеет побочных эффектов, в отличие от
+// /reports/summary, который тяжелее считать. Личный токен пользователя (в
+// отличие от токена бота) не ограничен BOT_ACCESSIBLE_ENDPOINTS (см.
+// access_token_auth_helper.rb: validate_bot_access_token! пропускает всех
+// Current.user.is_a?(User) без проверки whitelist'а), так что любой
+// admin-only эндпоинт годится для этой проверки.
+async function verifyAdminToken({ baseUrl, accountId, token }) {
+  try {
+    await axios.get(`${baseUrl}/api/v1/accounts/${accountId}/webhooks`, {
+      headers: { api_access_token: token },
+      timeout: 10000,
+    });
+    return true;
+  } catch (err) {
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      return false;
+    }
+    throw err;
+  }
+}
+
+module.exports = { createChatwootClient, verifyAdminToken };
