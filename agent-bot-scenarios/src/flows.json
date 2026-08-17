@@ -662,15 +662,6 @@
   "calendar_intro": {
     "type": "message",
     "text": "Для быстрой обработки укажите, пожалуйста, следующую информацию:",
-    "next": "calendar_id"
-  },
-  "calendar_id": {
-    "type": "question",
-    "prompt": "Укажите свой ID",
-    "field": {
-      "name": "user_id",
-      "type": "text"
-    },
     "next": "calendar_project"
   },
   "calendar_project": {
@@ -683,6 +674,24 @@
         "Говорика",
         "Мова-Промова"
       ]
+    },
+    "next": "calendar_name"
+  },
+  "calendar_name": {
+    "type": "question",
+    "prompt": "Укажите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "calendar_id"
+  },
+  "calendar_id": {
+    "type": "question",
+    "prompt": "Укажите свой ID",
+    "field": {
+      "name": "user_id",
+      "type": "text"
     },
     "next": "calendar_description"
   },
@@ -704,22 +713,40 @@
   "tech_intro": {
     "type": "message",
     "text": "Для быстрой обработки укажите, пожалуйста, следующую информацию:",
-    "next": "tech_problem"
+    "next": "tech_project"
   },
-  "tech_problem": {
+  "tech_project": {
     "type": "question",
-    "prompt": "Укажите, какая возникла проблема с ПК (по возможности приложите скриншот или видео отдельным сообщением)",
+    "prompt": "Укажите проект",
     "field": {
-      "name": "problem",
+      "name": "project",
       "type": "text"
     },
-    "next": "tech_anydesk"
+    "next": "tech_name"
   },
-  "tech_anydesk": {
+  "tech_name": {
     "type": "question",
-    "prompt": "Укажите номер AnyDesk для быстрого решения проблемы. Если ещё не установили — скачайте на https://anydesk.com/ru, после запуска приложение покажет ваш уникальный номер. Если пока не можете указать — напишите «нет»",
+    "prompt": "Укажите ваше Имя и Фамилию полностью",
     "field": {
-      "name": "anydesk_id",
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "tech_id"
+  },
+  "tech_id": {
+    "type": "question",
+    "prompt": "Укажите свой ID",
+    "field": {
+      "name": "user_id",
+      "type": "text"
+    },
+    "next": "tech_description"
+  },
+  "tech_description": {
+    "type": "question",
+    "prompt": "Укажите, какая возникла проблема с ПК (по возможности приложите скриншот или видео отдельным сообщением, номер AnyDesk — если уже устанавливали)",
+    "field": {
+      "name": "description",
       "type": "text"
     },
     "next": "tech_submit"
@@ -733,6 +760,15 @@
   "logo_intro": {
     "type": "message",
     "text": "Пожалуйста, заполните информацию для создания заявки:",
+    "next": "logo_project"
+  },
+  "logo_project": {
+    "type": "question",
+    "prompt": "Укажите проект",
+    "field": {
+      "name": "project",
+      "type": "text"
+    },
     "next": "logo_name"
   },
   "logo_name": {
@@ -742,13 +778,13 @@
       "name": "full_name",
       "type": "text"
     },
-    "next": "logo_project"
+    "next": "logo_id"
   },
-  "logo_project": {
+  "logo_id": {
     "type": "question",
-    "prompt": "Укажите проект",
+    "prompt": "Укажите свой ID",
     "field": {
-      "name": "project",
+      "name": "user_id",
       "type": "text"
     },
     "next": "logo_description"
@@ -771,6 +807,15 @@
   "slideedu_intro": {
     "type": "message",
     "text": "Пожалуйста, заполните информацию для создания заявки:",
+    "next": "slideedu_project"
+  },
+  "slideedu_project": {
+    "type": "question",
+    "prompt": "Укажите проект",
+    "field": {
+      "name": "project",
+      "type": "text"
+    },
     "next": "slideedu_name"
   },
   "slideedu_name": {
@@ -780,13 +825,13 @@
       "name": "full_name",
       "type": "text"
     },
-    "next": "slideedu_project"
+    "next": "slideedu_id"
   },
-  "slideedu_project": {
+  "slideedu_id": {
     "type": "question",
-    "prompt": "Укажите проект",
+    "prompt": "Укажите свой ID",
     "field": {
-      "name": "project",
+      "name": "user_id",
       "type": "text"
     },
     "next": "slideedu_description"
