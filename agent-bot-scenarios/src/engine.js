@@ -6,6 +6,7 @@ const store = require('./store');
 
 const BACK_ID = '__back__';
 const MENU_ID = '__menu__';
+const SKIP_ID = '__skip__';
 
 // Категории pre-chat формы → узел, с которого бот начинает диалог для этой
 // категории (см. отчёт по замечаниям от 2026-08-17, пункты 2-3: раньше бот
@@ -68,6 +69,18 @@ async function renderNode(client, conversationId, nodeId, state) {
         node.prompt,
         node.field.options.map(o => ({ id: o, title: o, value: o }))
       );
+    } else if (node.optional) {
+      // Необязательный текстовый вопрос (например, "Имя клиента", "ID
+      // клиента" — учитель мог их не знать в моменте) — кнопка "Пропустить"
+      // рядом с полем. Свободный текст при этом всё ещё работает как обычно
+      // (handleTextAnswer не завязан на content_type исходящего сообщения) —
+      // клиент может либо ответить, либо нажать кнопку. Нативную
+      // email-валидацию (input_email) с кнопками Chatwoot совмещать не даёт,
+      // поэтому optional-поля с field.type: email этим путём не поддержаны —
+      // пока не требовалось.
+      await client.sendMenu(conversationId, node.prompt, [
+        { id: SKIP_ID, title: 'Пропустить', value: SKIP_ID },
+      ]);
     } else if (node.field.type === 'email') {
       // content_type: input_email — нативная валидация Chatwoot на виджете,
       // плюс движок ещё раз проверяет формат при получении ответа.
@@ -175,6 +188,14 @@ async function handleOptionSelected(client, conversationId, selectedId) {
   }
 
   const currentNode = flows[state.nodeId];
+
+  // Клик "Пропустить" на необязательном вопросе (см. renderNode) —
+  // сохраняем пустое значение и идём дальше, как будто ответили.
+  if (selectedId === SKIP_ID && currentNode?.type === 'question' && currentNode.optional) {
+    state.formData[currentNode.field.name] = null;
+    state.history.push(state.nodeId);
+    return renderNode(client, conversationId, currentNode.next, state);
+  }
 
   // Ответ на question с полем-выбором (например, валюта) — не переход по
   // меню, а сохранение значения формы, как и обычный текстовый ответ.

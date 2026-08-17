@@ -680,6 +680,7 @@
   "calendar_name": {
     "type": "question",
     "prompt": "Укажите ФИО клиента, по которому возникла проблема",
+    "optional": true,
     "field": {
       "name": "client_name",
       "type": "text"
@@ -689,6 +690,7 @@
   "calendar_id": {
     "type": "question",
     "prompt": "Укажите ID клиента",
+    "optional": true,
     "field": {
       "name": "client_id",
       "type": "text"
@@ -727,6 +729,7 @@
   "tech_name": {
     "type": "question",
     "prompt": "Укажите ФИО клиента, по которому возникла проблема",
+    "optional": true,
     "field": {
       "name": "client_name",
       "type": "text"
@@ -736,6 +739,7 @@
   "tech_id": {
     "type": "question",
     "prompt": "Укажите ID клиента",
+    "optional": true,
     "field": {
       "name": "client_id",
       "type": "text"
@@ -774,6 +778,7 @@
   "logo_name": {
     "type": "question",
     "prompt": "Укажите ФИО клиента, по которому возникла проблема",
+    "optional": true,
     "field": {
       "name": "client_name",
       "type": "text"
@@ -783,6 +788,7 @@
   "logo_id": {
     "type": "question",
     "prompt": "Укажите ID клиента",
+    "optional": true,
     "field": {
       "name": "client_id",
       "type": "text"
@@ -821,6 +827,7 @@
   "slideedu_name": {
     "type": "question",
     "prompt": "Укажите ФИО клиента, по которому возникла проблема",
+    "optional": true,
     "field": {
       "name": "client_name",
       "type": "text"
@@ -830,6 +837,7 @@
   "slideedu_id": {
     "type": "question",
     "prompt": "Укажите ID клиента",
+    "optional": true,
     "field": {
       "name": "client_id",
       "type": "text"
