@@ -657,5 +657,152 @@
     "type": "submit",
     "message": "Ваша заявка создана, ожидайте решения",
     "group": "Финансы - Вопросы по ведению ФОП"
+  },
+
+  "calendar_intro": {
+    "type": "message",
+    "text": "Для быстрой обработки укажите, пожалуйста, следующую информацию:",
+    "next": "calendar_id"
+  },
+  "calendar_id": {
+    "type": "question",
+    "prompt": "Укажите свой ID",
+    "field": {
+      "name": "user_id",
+      "type": "text"
+    },
+    "next": "calendar_project"
+  },
+  "calendar_project": {
+    "type": "question",
+    "prompt": "Укажите проект",
+    "field": {
+      "name": "project",
+      "type": "select",
+      "options": [
+        "Говорика",
+        "Мова-Промова"
+      ]
+    },
+    "next": "calendar_description"
+  },
+  "calendar_description": {
+    "type": "question",
+    "prompt": "Опишите проблему и этап, на котором она возникла (например: «при нажатии...» или «во время... и т.д.»)",
+    "field": {
+      "name": "description",
+      "type": "text"
+    },
+    "next": "calendar_submit"
+  },
+  "calendar_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "label": "bumes"
+  },
+
+  "tech_intro": {
+    "type": "message",
+    "text": "Для быстрой обработки укажите, пожалуйста, следующую информацию:",
+    "next": "tech_problem"
+  },
+  "tech_problem": {
+    "type": "question",
+    "prompt": "Укажите, какая возникла проблема с ПК (по возможности приложите скриншот или видео отдельным сообщением)",
+    "field": {
+      "name": "problem",
+      "type": "text"
+    },
+    "next": "tech_anydesk"
+  },
+  "tech_anydesk": {
+    "type": "question",
+    "prompt": "Укажите номер AnyDesk для быстрого решения проблемы. Если ещё не установили — скачайте на https://anydesk.com/ru, после запуска приложение покажет ваш уникальный номер. Если пока не можете указать — напишите «нет»",
+    "field": {
+      "name": "anydesk_id",
+      "type": "text"
+    },
+    "next": "tech_submit"
+  },
+  "tech_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "label": "tech-support"
+  },
+
+  "logo_intro": {
+    "type": "message",
+    "text": "Пожалуйста, заполните информацию для создания заявки:",
+    "next": "logo_name"
+  },
+  "logo_name": {
+    "type": "question",
+    "prompt": "Укажите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "logo_project"
+  },
+  "logo_project": {
+    "type": "question",
+    "prompt": "Укажите проект",
+    "field": {
+      "name": "project",
+      "type": "text"
+    },
+    "next": "logo_description"
+  },
+  "logo_description": {
+    "type": "question",
+    "prompt": "Опишите вашу проблему или запрос",
+    "field": {
+      "name": "description",
+      "type": "text"
+    },
+    "next": "logo_submit"
+  },
+  "logo_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "label": "logo-chat"
+  },
+
+  "slideedu_intro": {
+    "type": "message",
+    "text": "Пожалуйста, заполните информацию для создания заявки:",
+    "next": "slideedu_name"
+  },
+  "slideedu_name": {
+    "type": "question",
+    "prompt": "Укажите ваше Имя и Фамилию полностью",
+    "field": {
+      "name": "full_name",
+      "type": "text"
+    },
+    "next": "slideedu_project"
+  },
+  "slideedu_project": {
+    "type": "question",
+    "prompt": "Укажите проект",
+    "field": {
+      "name": "project",
+      "type": "text"
+    },
+    "next": "slideedu_description"
+  },
+  "slideedu_description": {
+    "type": "question",
+    "prompt": "Опишите вашу проблему или запрос",
+    "field": {
+      "name": "description",
+      "type": "text"
+    },
+    "next": "slideedu_submit"
+  },
+  "slideedu_submit": {
+    "type": "submit",
+    "message": "Ваша заявка создана, ожидайте решения",
+    "label": "slideedu"
   }
 }
