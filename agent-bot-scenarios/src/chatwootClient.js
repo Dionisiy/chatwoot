@@ -146,6 +146,21 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       return data.data;
     },
 
+    // Категория, выбранная в pre-chat форме виджета — custom attribute
+    // "Категория" (ключ `type`, Settings → Пользовательские атрибуты →
+    // Диалог). GET /conversations/:id отдаёт additional_attributes прямым
+    // полем верхнего уровня (см. app/views/api/v1/conversations/partials/
+    // _conversation.json.jbuilder: `json.additional_attributes
+    // conversation.additional_attributes`), и этот action (`show`) разрешён
+    // токену бота (см. AccessTokenAuthHelper::BOT_ACCESSIBLE_ENDPOINTS) —
+    // отдельный adminToken тут не нужен. Используется engine.js#startFlow,
+    // чтобы не показывать финансовое главное меню в диалогах с другой
+    // категорией (пр.-чат форма без привязки к дереву бота).
+    async getConversationCategory(conversationId) {
+      const { data } = await http.get(`/conversations/${conversationId}`);
+      return data.additional_attributes?.type || null;
+    },
+
     // Агрегированная статистика ответов/решений — используем родные отчёты
     // Chatwoot (app/builders/v2/reports/conversations/metric_builder.rb),
     // а не считаем среднее время вручную: там учтены рабочие часы,

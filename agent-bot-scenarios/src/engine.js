@@ -7,6 +7,18 @@ const store = require('./store');
 const BACK_ID = '__back__';
 const MENU_ID = '__menu__';
 
+// Категории pre-chat формы, для которых main_menu — правильная точка входа
+// (всё дерево сценария сейчас целиком про финансы). Остальные категории
+// (Техническая поддержка, Календарь логопеда, Logo-chat, Slideedu)
+// обслуживаются правилами автоматизации Chatwoot (Settings → Автоматизация:
+// метка + канонический ответ, см. пример с AnyDesk-инструкцией для
+// tech-support) — бот в них не должен подсовывать финансовое меню (см. отчёт
+// по замечаниям от 2026-08-17, пункты 2-3: клиент выбирал разные категории,
+// а видел одни и те же кнопки). Если категория не задана (диалог без
+// pre-chat формы, либо старые диалоги до её появления) — сохраняем прежнее
+// поведение и открываем main_menu как раньше.
+const BOT_CATEGORIES = new Set(['Финансовые вопросы']);
+
 // Простая проверка email — так же, как в Freshchat поле "Адреса ел. пошти"
 // не пропускает ввод без @ и точки в домене (см. README).
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -119,6 +131,16 @@ async function renderNode(client, conversationId, nodeId, state) {
 }
 
 async function startFlow(client, conversationId) {
+  let category = null;
+  try {
+    category = await client.getConversationCategory(conversationId);
+  } catch (err) {
+    console.error('[engine] getConversationCategory failed:', err.message);
+  }
+  // Категория выбрана и это не "наша" (финансовая) — молчим, оставляем
+  // ответ автоматизации Chatwoot единственным сообщением в диалоге.
+  if (category && !BOT_CATEGORIES.has(category)) return;
+
   const state = freshState();
   await renderNode(client, conversationId, 'main_menu', state);
 }
