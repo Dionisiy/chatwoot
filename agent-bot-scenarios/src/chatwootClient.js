@@ -148,17 +148,23 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
 
     // Категория, выбранная в pre-chat форме виджета — custom attribute
     // "Категория" (ключ `type`, Settings → Пользовательские атрибуты →
-    // Диалог). GET /conversations/:id отдаёт additional_attributes прямым
-    // полем верхнего уровня (см. app/views/api/v1/conversations/partials/
-    // _conversation.json.jbuilder: `json.additional_attributes
-    // conversation.additional_attributes`), и этот action (`show`) разрешён
-    // токену бота (см. AccessTokenAuthHelper::BOT_ACCESSIBLE_ENDPOINTS) —
-    // отдельный adminToken тут не нужен. Используется engine.js#startFlow,
-    // чтобы не показывать финансовое главное меню в диалогах с другой
-    // категорией (пр.-чат форма без привязки к дереву бота).
+    // Диалог). ВАЖНО: пользовательские custom attributes лежат в отдельном
+    // jsonb-поле `custom_attributes`, а НЕ в `additional_attributes` —
+    // последнее зарезервировано под системные поля виджета (browser,
+    // referer, initiated_at и т.п., см. ConversationInfo.vue). Их легко
+    // перепутать (см. app/views/api/v1/conversations/partials/
+    // _conversation.json.jbuilder — оба поля идут подряд), но в UI Chatwoot
+    // "Категория" рендерится компонентом <CustomAttributes
+    // attribute-type="conversation_attribute">, который читает именно
+    // conversation.custom_attributes (см. ConversationInfo.vue). GET
+    // /conversations/:id отдаёт custom_attributes прямым полем верхнего
+    // уровня, и этот action (`show`) разрешён токену бота (см.
+    // AccessTokenAuthHelper::BOT_ACCESSIBLE_ENDPOINTS) — отдельный
+    // adminToken тут не нужен. Используется engine.js#startFlow, чтобы не
+    // показывать финансовое главное меню в диалогах с другой категорией.
     async getConversationCategory(conversationId) {
       const { data } = await http.get(`/conversations/${conversationId}`);
-      return data.additional_attributes?.type || null;
+      return data.custom_attributes?.type || null;
     },
 
     // Агрегированная статистика ответов/решений — используем родные отчёты
