@@ -128,6 +128,14 @@ async function renderNode(client, conversationId, nodeId, state) {
     // независимо от будущих правок текста в редакторе номер заявки не
     // потеряется.
     await client.sendText(conversationId, `${node.message}\nНомер заявки: ${conversationId}`);
+    // Срочный приоритет = маркер "новая заявка, не обработана" для очереди
+    // агентов (см. chatwootClient.js#setPriority) — независимо от резолва
+    // ниже. Не должен ронять создание заявки, если API недоступен.
+    try {
+      await client.setPriority(conversationId, 'urgent');
+    } catch (err) {
+      console.error('[engine] setPriority failed:', err.message);
+    }
     if (node.group) {
       try {
         await client.assignTeamByName(conversationId, node.group);

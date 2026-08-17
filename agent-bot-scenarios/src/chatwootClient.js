@@ -128,6 +128,22 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       return this.assignTeam(conversationId, team.id);
     },
 
+    // Приоритет диалога — используется на submit, чтобы дать агентам очередь
+    // "Новые заявки" (Приоритет=Срочно + Статус=Все), не завязанную на
+    // фильтр "Открыт": тикет резолвится сразу же (см. resolveConversation
+    // ниже, ради нумерации), и без отдельного признака он тонет среди
+    // остальных Resolved-диалогов. Агент снимает приоритет (обычной кнопкой
+    // в панели диалога, не фильтром), когда реально обработал заявку — это
+    // и есть сигнал "точно решено", отдельно от чатвутовского Resolved.
+    // POST .../toggle_priority разрешён токену бота (см. access_token_auth_
+    // helper.rb, BOT_ACCESSIBLE_ENDPOINTS). priority: null снимает приоритет
+    // (см. Conversation#toggle_priority — пусто трактуется как "нет").
+    async setPriority(conversationId, priority) {
+      return http.post(`/conversations/${conversationId}/toggle_priority`, {
+        priority,
+      });
+    },
+
     // Резолв диалога — см. engine.js → submit, и README →
     // "Тикеты и несколько заявок от одного клиента".
     async resolveConversation(conversationId) {
