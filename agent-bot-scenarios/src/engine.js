@@ -102,7 +102,13 @@ async function renderNode(client, conversationId, nodeId, state) {
   }
 
   if (node.type === 'submit') {
-    await client.sendText(conversationId, node.message);
+    // conversationId — это display_id (тот самый номер, что виден в адресной
+    // строке /conversations/18 и в самом Chatwoot) — см. пункт 5 отчёта по
+    // замечаниям от 2026-08-17. Дописываем его автоматически ко всем
+    // submit-узлам одним местом в коде, а не руками в каждой ветке /admin —
+    // независимо от будущих правок текста в редакторе номер заявки не
+    // потеряется.
+    await client.sendText(conversationId, `${node.message}\nНомер заявки: ${conversationId}`);
     if (node.group) {
       try {
         await client.assignTeamByName(conversationId, node.group);
