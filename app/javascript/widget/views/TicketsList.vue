@@ -29,6 +29,9 @@ export default {
     statusLabel(status) {
       return this.$t(`TICKETS_LIST.STATUS.${status.toUpperCase()}`);
     },
+    unreadBadgeLabel(count) {
+      return count > 9 ? this.$t('TICKETS_LIST.UNREAD_MAX') : String(count);
+    },
     formattedDate(ticket) {
       return formatUnixDate(
         ticket.last_activity_at || ticket.created_at,
@@ -77,26 +80,40 @@ export default {
       :key="ticket.id"
       type="button"
       class="flex flex-col gap-1 p-3 text-left rounded-lg bg-n-solid-2 hover:bg-n-solid-3 dark:bg-n-solid-2 dark:hover:bg-n-solid-3"
+      :class="{ 'ring-1 ring-n-ruby-9': ticket.unread_count > 0 }"
       @click="openTicket(ticket)"
     >
       <div class="flex items-center justify-between gap-2">
         <span class="text-sm font-medium text-n-slate-12">
           {{ $t('TICKETS_LIST.TICKET_NUMBER', { id: ticket.id }) }}
         </span>
-        <span
-          class="px-2 py-0.5 text-xs rounded-full whitespace-nowrap"
-          :class="
-            isResolved(ticket.status)
-              ? 'bg-n-slate-4 text-n-slate-11'
-              : 'bg-n-teal-4 text-n-teal-11'
-          "
-        >
-          {{ statusLabel(ticket.status) }}
-        </span>
+        <div class="flex items-center gap-1.5">
+          <span
+            v-if="ticket.unread_count > 0"
+            class="flex items-center justify-center h-[18px] min-w-[18px] px-1 text-[10px] font-semibold text-white rounded-full bg-n-ruby-9"
+          >
+            {{ unreadBadgeLabel(ticket.unread_count) }}
+          </span>
+          <span
+            class="px-2 py-0.5 text-xs rounded-full whitespace-nowrap"
+            :class="
+              isResolved(ticket.status)
+                ? 'bg-n-slate-4 text-n-slate-11'
+                : 'bg-n-teal-4 text-n-teal-11'
+            "
+          >
+            {{ statusLabel(ticket.status) }}
+          </span>
+        </div>
       </div>
       <p
         v-if="ticket.last_message"
-        class="overflow-hidden text-xs text-n-slate-11 text-ellipsis whitespace-nowrap"
+        class="overflow-hidden text-xs text-ellipsis whitespace-nowrap"
+        :class="
+          ticket.unread_count > 0
+            ? 'text-n-slate-12 font-medium'
+            : 'text-n-slate-11'
+        "
       >
         {{ ticket.last_message }}
       </p>

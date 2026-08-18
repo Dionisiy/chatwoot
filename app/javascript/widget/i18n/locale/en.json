@@ -53,6 +53,7 @@
     "BUTTON_TITLE": "My requests",
     "EMPTY": "You haven't created any requests yet",
     "TICKET_NUMBER": "Request #{id}",
+    "UNREAD_MAX": "9+",
     "STATUS": {
       "OPEN": "Open",
       "PENDING": "Pending",

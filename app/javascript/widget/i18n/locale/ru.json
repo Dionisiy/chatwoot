@@ -53,6 +53,7 @@
     "BUTTON_TITLE": "Мои заявки",
     "EMPTY": "У вас пока нет заявок",
     "TICKET_NUMBER": "Заявка №{id}",
+    "UNREAD_MAX": "9+",
     "STATUS": {
       "OPEN": "Открыта",
       "PENDING": "В ожидании",
