@@ -3,6 +3,14 @@
 # Запуск (на дроплете — от пользователя chatwoot):
 #   sudo -u chatwoot bash agent-bot-scenarios/deploy.sh
 # Идемпотентно: первый запуск делает `pm2 start`, последующие — `pm2 restart`.
+#
+# ВАЖНО: этот скрипт НЕ синхронизирует git сам (раньше делал `git pull
+# --ff-only` тут же и это регулярно ломалось на дропле, если ветка droplet'а
+# разошлась с origin — cherry-pick конфликты, "not possible to fast-forward"
+# и т.п.). Синхронизация git — обязанность вызывающей команды, ДО запуска
+# этого скрипта, единообразно:
+#   git fetch origin && git reset --hard origin/<ветка-в-origin>
+# см. README → "Деплой".
 
 set -euo pipefail
 
@@ -10,9 +18,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 APP_NAME="slideedu-agent-bot"
-
-echo "==> git pull (текущая ветка репозитория)"
-git -C .. pull --ff-only
 
 echo "==> npm install"
 npm install
