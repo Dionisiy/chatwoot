@@ -128,14 +128,6 @@ async function renderNode(client, conversationId, nodeId, state) {
     // независимо от будущих правок текста в редакторе номер заявки не
     // потеряется.
     await client.sendText(conversationId, `${node.message}\nНомер заявки: ${conversationId}`);
-    // Срочный приоритет = маркер "новая заявка, не обработана" для очереди
-    // агентов (см. chatwootClient.js#setPriority) — независимо от резолва
-    // ниже. Не должен ронять создание заявки, если API недоступен.
-    try {
-      await client.setPriority(conversationId, 'urgent');
-    } catch (err) {
-      console.error('[engine] setPriority failed:', err.message);
-    }
     if (node.group) {
       try {
         await client.assignTeamByName(conversationId, node.group);
@@ -149,16 +141,16 @@ async function renderNode(client, conversationId, nodeId, state) {
         console.error('[engine] addLabel failed:', err.message);
       }
     }
-    // Резолвим диалог — это то, что превращает "одну бесконечную переписку"
-    // в отдельные заявки с номерами: следующее сообщение того же контакта
-    // (при выключенной опции "Allow messages after resolved" на инбоксе)
-    // создаст НОВЫЙ conversation/display_id вместо дописывания в этот же.
-    // См. README → "Тикеты и несколько заявок от одного клиента".
-    try {
-      await client.resolveConversation(conversationId);
-    } catch (err) {
-      console.error('[engine] resolveConversation failed:', err.message);
-    }
+    // Диалог намеренно НЕ резолвится: заявка остаётся Open, пока агент
+    // реально её не обработает — иначе резолв в момент сабмита ломает
+    // отчётность Chatwoot (время решения считается от резолва, а не от
+    // реальной обработки) и прячет тикет из дефолтного фильтра "Открыт".
+    // Номер заявки при этом не теряется: если клиент хочет открыть ещё одну
+    // заявку, не дожидаясь обработки текущей, у него в виджете есть кнопка
+    // "Новая заявка" (см. правку ChatFooter.vue) — она ведёт на pre-chat
+    // форму и создаёт полностью отдельный новый conversation/display_id,
+    // независимо от статуса текущего. См. README → "Несколько заявок от
+    // одного клиента".
     store.clear(conversationId);
   }
 }

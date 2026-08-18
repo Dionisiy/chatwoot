@@ -153,6 +153,14 @@ export default {
       :on-send-message="handleSendMessage"
       :on-send-attachment="handleSendAttachment"
     />
+    <CustomButton
+      v-if="conversationSize > 0"
+      type="clear"
+      class="font-normal"
+      @click="startNewConversation"
+    >
+      {{ $t('START_ANOTHER_CONVERSATION') }}
+    </CustomButton>
   </footer>
   <div v-else>
     <CustomButton
