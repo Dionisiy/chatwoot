@@ -54,9 +54,18 @@ class ActionCableConnector extends BaseActionCableConnector {
       this.app.$store.dispatch('campaign/resetCampaign');
     }
     this.app.$store.dispatch('conversationAttributes/update', data);
+    // Статус тикета в "Мои заявки" (см. views/TicketsList.vue) мог смениться
+    // не только у активного диалога — не молчим, если список уже открывали.
+    this.app.$store.dispatch('conversationsList/refreshIfLoaded');
   };
 
   onMessageCreated = data => {
+    // Событие приходит по общей pubsub-подписке контакта — по ВСЕМ его
+    // тикетам, не только по активному (см. isMessageInActiveConversation).
+    // Раньше "Мои заявки" из-за этого не обновлялся на новые сообщения в
+    // других тикетах, хотя звук уведомления уже играл (см. ниже).
+    this.app.$store.dispatch('conversationsList/refreshIfLoaded');
+
     if (isMessageInActiveConversation(this.app.$store.getters, data)) {
       return;
     }

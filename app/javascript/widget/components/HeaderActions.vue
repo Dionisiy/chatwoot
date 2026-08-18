@@ -96,6 +96,7 @@ export default {
     <div v-if="showHeaderActions" class="actions flex items-center gap-3">
       <button
         v-if="
+          !isOnTicketsView &&
           canLeaveConversation &&
           canUserEndConversation &&
           hasEndConversationEnabled &&
