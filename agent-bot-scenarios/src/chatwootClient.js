@@ -80,6 +80,24 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       });
     },
 
+    // Перевод диалога из Pending в Open через штатный bot-handoff Chatwoot.
+    // ВАЖНО: это не резолв. Chatwoot сам переводит любой новый диалог в
+    // инбоксе с активным ботом в статус Pending ещё ДО первого сообщения
+    // бота (app/models/conversation.rb#determine_conversation_status →
+    // set_active_bot_conversation, before_create-хук, наш код тут ни при
+    // чём и повлиять на это не может). Единственный штатный способ уйти из
+    // Pending — POST /toggle_status с status:'open' от имени самого бота:
+    // ConversationsController#toggle_status видит Current.user.is_a?(AgentBot)
+    // и status pending→open и вызывает @conversation.bot_handoff! вместо
+    // обычной смены статуса — это снимает assignee_agent_bot, ставит
+    // status: open и пишет репортинг-событие conversation_bot_handoff
+    // (используется в родных метриках бота: bot_handoff_rate и т.п.), т.е.
+    // ещё и корректно попадает в статистику вместо того, чтобы её портить.
+    // toggle_status разрешён токену бота (BOT_ACCESSIBLE_ENDPOINTS).
+    async setStatus(conversationId, status) {
+      return http.post(`/conversations/${conversationId}/toggle_status`, { status });
+    },
+
     // Прямой ассайн на команду по team_id (см. соответствующий метод
     // assignTeamByName ниже — обычно удобнее вызывать его).
     async assignTeam(conversationId, teamId) {
