@@ -13,10 +13,16 @@ import {
 import { ON_CONVERSATION_CREATED } from 'widget/constants/widgetBusEvents';
 import { createTemporaryMessage, getNonDeletedMessages } from './helpers';
 import { emitter } from 'shared/helpers/mitt';
+import { clearActiveConversationId } from 'widget/helpers/activeConversation';
 export const actions = {
   createConversation: async ({ commit, dispatch }, params) => {
     commit('setConversationUIFlag', { isCreating: true });
     try {
+      // Подстраховка на случай, если сюда пришли не через кнопку "Новая
+      // заявка" в ChatFooter (которая уже сбрасывает выбор сама) — новый
+      // диалог всегда должен стать активным, а не унаследовать чей-то старый
+      // выбранный conversation_id из "Мои заявки".
+      clearActiveConversationId();
       const { data } = await createConversationAPI(params);
       const { messages } = data;
       const [message = {}] = messages;

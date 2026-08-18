@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router';
 import { IFrameHelper } from '../helpers/utils';
 import { CHATWOOT_ON_START_CONVERSATION } from '../constants/sdkEvents';
 import { emitter } from 'shared/helpers/mitt';
+import { clearActiveConversationId } from '../helpers/activeConversation';
 
 const TRANSCRIPT_COOLDOWN_MS = 15000;
 
@@ -88,6 +89,11 @@ export default {
       this.inReplyTo = null;
     },
     startNewConversation() {
+      // Если клиент только что смотрел старый тикет из "Мои заявки" (не
+      // обязательно последний, см. helpers/activeConversation.js) — сбрасываем
+      // выбор, иначе следующее сообщение нового диалога уйдёт по инерции в
+      // старый conversation_id, а не в только что созданный.
+      clearActiveConversationId();
       this.router.replace({ name: 'prechat-form' });
       IFrameHelper.sendMessage({
         event: 'onEvent',

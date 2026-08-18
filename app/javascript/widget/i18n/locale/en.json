@@ -49,6 +49,17 @@
   "START_NEW_CONVERSATION": "Start a new conversation",
   "START_ANOTHER_CONVERSATION": "Start a new request",
   "VIEW_UNREAD_MESSAGES": "You have unread messages",
+  "TICKETS_LIST": {
+    "BUTTON_TITLE": "My requests",
+    "EMPTY": "You haven't created any requests yet",
+    "TICKET_NUMBER": "Request #{id}",
+    "STATUS": {
+      "OPEN": "Open",
+      "PENDING": "Pending",
+      "RESOLVED": "Resolved",
+      "SNOOZED": "Snoozed"
+    }
+  },
   "UNREAD_VIEW": {
     "VIEW_MESSAGES_BUTTON": "See new messages",
     "CLOSE_MESSAGES_BUTTON": "Close",

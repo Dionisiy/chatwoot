@@ -6,6 +6,7 @@ import contacts from 'widget/store/modules/contacts';
 import conversation from 'widget/store/modules/conversation';
 import conversationAttributes from 'widget/store/modules/conversationAttributes';
 import conversationLabels from 'widget/store/modules/conversationLabels';
+import conversationsList from 'widget/store/modules/conversationsList';
 import events from 'widget/store/modules/events';
 import globalConfig from 'shared/store/globalConfig';
 import message from 'widget/store/modules/message';
@@ -20,6 +21,7 @@ export default createStore({
     conversation,
     conversationAttributes,
     conversationLabels,
+    conversationsList,
     events,
     globalConfig,
     message,

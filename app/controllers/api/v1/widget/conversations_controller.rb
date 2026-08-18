@@ -6,6 +6,13 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
     @conversation = conversation
   end
 
+  # Список всех тикетов контакта (для экрана "Мои заявки" в виджете) —
+  # в отличие от index/conversation (conversations.last), отдаёт все
+  # диалоги контакта, а не только последний. См. base_controller#conversations.
+  def list
+    @conversations = conversations.order(last_activity_at: :desc)
+  end
+
   def create
     ActiveRecord::Base.transaction do
       process_update_contact

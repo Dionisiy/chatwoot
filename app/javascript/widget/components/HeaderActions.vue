@@ -47,8 +47,14 @@ export default {
     hasWidgetOptions() {
       return this.showPopoutButton || this.conversationStatus === 'open';
     },
+    isOnTicketsView() {
+      return this.$route.name === 'tickets';
+    },
   },
   methods: {
+    openTicketsList() {
+      this.$router.push({ name: 'tickets' });
+    },
     popoutWindow() {
       this.closeWindow();
       const {
@@ -77,38 +83,47 @@ export default {
 };
 </script>
 
-<!-- eslint-disable-next-line vue/no-root-v-if -->
 <template>
-  <div v-if="showHeaderActions" class="actions flex items-center gap-3">
+  <div class="flex items-center gap-3">
     <button
-      v-if="
-        canLeaveConversation &&
-        canUserEndConversation &&
-        hasEndConversationEnabled &&
-        showEndConversationButton
-      "
+      v-if="!isOnTicketsView"
       class="button transparent compact"
-      :title="$t('END_CONVERSATION')"
-      @click="resolveConversation"
+      :title="$t('TICKETS_LIST.BUTTON_TITLE')"
+      @click="openTicketsList"
     >
-      <FluentIcon icon="sign-out" size="22" class="text-n-slate-12" />
+      <FluentIcon icon="document" size="22" class="text-n-slate-12" />
     </button>
-    <button
-      v-if="showPopoutButton"
-      class="button transparent compact new-window--button"
-      @click="popoutWindow"
-    >
-      <FluentIcon icon="open" size="22" class="text-n-slate-12" />
-    </button>
-    <button
-      class="button transparent compact close-button"
-      :class="{
-        'rn-close-button': isRNWebView,
-      }"
-      @click="closeWindow"
-    >
-      <FluentIcon icon="dismiss" size="24" class="text-n-slate-12" />
-    </button>
+    <div v-if="showHeaderActions" class="actions flex items-center gap-3">
+      <button
+        v-if="
+          canLeaveConversation &&
+          canUserEndConversation &&
+          hasEndConversationEnabled &&
+          showEndConversationButton
+        "
+        class="button transparent compact"
+        :title="$t('END_CONVERSATION')"
+        @click="resolveConversation"
+      >
+        <FluentIcon icon="sign-out" size="22" class="text-n-slate-12" />
+      </button>
+      <button
+        v-if="showPopoutButton"
+        class="button transparent compact new-window--button"
+        @click="popoutWindow"
+      >
+        <FluentIcon icon="open" size="22" class="text-n-slate-12" />
+      </button>
+      <button
+        class="button transparent compact close-button"
+        :class="{
+          'rn-close-button': isRNWebView,
+        }"
+        @click="closeWindow"
+      >
+        <FluentIcon icon="dismiss" size="24" class="text-n-slate-12" />
+      </button>
+    </div>
   </div>
 </template>
 

@@ -17,7 +17,19 @@ class Api::V1::Widget::BaseController < ApplicationController
   end
 
   def conversation
-    @conversation ||= conversations.last
+    @conversation ||= if params[:conversation_id].present?
+                         # Явный выбор тикета из списка "Мои заявки" (см.
+                         # ConversationsController#list) — scoped через
+                         # conversations (тот же helper, что и .last ниже),
+                         # поэтому чужой/произвольный id просто не найдётся,
+                         # а не даст доступ к диалогу другого контакта.
+                         # display_id, а не PK — весь остальной виджет и бот
+                         # (см. agent-bot-scenarios/src/engine.js) уже везде
+                         # используют display_id как "номер заявки".
+                         conversations.find_by(display_id: params[:conversation_id])
+                       else
+                         conversations.last
+                       end
   end
 
   def create_conversation

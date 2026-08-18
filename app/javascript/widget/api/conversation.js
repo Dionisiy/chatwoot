@@ -38,6 +38,12 @@ const getConversationAPI = async () => {
   return API.get(`/api/v1/widget/conversations${window.location.search}`);
 };
 
+// Список ВСЕХ тикетов контакта (не только последний) — для экрана
+// "Мои заявки". См. Api::V1::Widget::ConversationsController#list.
+const getConversationsListAPI = async () => {
+  return API.get(`/api/v1/widget/conversations/list${window.location.search}`);
+};
+
 const toggleTyping = async ({ typingStatus }) => {
   return API.post(
     `/api/v1/widget/conversations/toggle_typing${window.location.search}`,
@@ -84,6 +90,7 @@ export {
   createConversationAPI,
   sendMessageAPI,
   getConversationAPI,
+  getConversationsListAPI,
   getMessagesAPI,
   sendAttachmentAPI,
   toggleTyping,

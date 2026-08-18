@@ -6,6 +6,10 @@ export const mutations = {
     $state.conversations = {};
     $state.pendingCustomAttributes = {};
     $state.pendingLabels = [];
+    // Сбрасываем пагинацию — иначе после переключения на другой тикет
+    // (см. views/TicketsList.vue) флаг, оставшийся true от предыдущего
+    // диалога, тихо отключил бы подгрузку старых сообщений через скролл.
+    $state.uiFlags.allMessagesLoaded = false;
   },
   pushMessageToConversation($state, message) {
     const { id, status, message_type: type } = message;
