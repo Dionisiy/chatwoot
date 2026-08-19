@@ -13,11 +13,33 @@ export default {
     const router = useRouter();
     return { router };
   },
+  data() {
+    return {
+      // null = фильтр "Все"
+      selectedCategory: null,
+    };
+  },
   computed: {
     ...mapGetters({
       tickets: 'conversationsList/getTickets',
       uiFlags: 'conversationsList/getUIFlags',
     }),
+    // Категории берём из самих тикетов (custom_attributes.type), а не из
+    // статичного списка — так чипы всегда соответствуют тому, что реально
+    // есть у клиента, и не расходятся с конфигом бота.
+    categories() {
+      const seen = new Set();
+      this.tickets.forEach(ticket => {
+        if (ticket.category) seen.add(ticket.category);
+      });
+      return Array.from(seen);
+    },
+    filteredTickets() {
+      if (!this.selectedCategory) return this.tickets;
+      return this.tickets.filter(
+        ticket => ticket.category === this.selectedCategory
+      );
+    },
   },
   mounted() {
     this.$store.dispatch('conversationsList/fetch');
@@ -37,6 +59,13 @@ export default {
         ticket.last_activity_at || ticket.created_at,
         'dd MMM, HH:mm'
       );
+    },
+    ticketMeta(ticket) {
+      const date = this.formattedDate(ticket);
+      return ticket.category ? `${ticket.category} · ${date}` : date;
+    },
+    selectCategory(category) {
+      this.selectedCategory = category;
     },
     // Переключаемся на выбранный тикет (не обязательно последний) — см.
     // helpers/activeConversation.js. Resolved-тикеты открываются в том же
@@ -64,6 +93,37 @@ export default {
 <template>
   <div class="flex flex-col flex-1 gap-2 p-4 overflow-auto">
     <div
+      v-if="categories.length > 1"
+      class="flex items-center gap-1.5 pb-1 overflow-x-auto"
+    >
+      <button
+        type="button"
+        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap"
+        :class="
+          !selectedCategory
+            ? 'bg-n-brand text-white'
+            : 'bg-n-slate-3 text-n-slate-11 hover:bg-n-slate-4'
+        "
+        @click="selectCategory(null)"
+      >
+        {{ $t('TICKETS_LIST.ALL_CATEGORIES') }}
+      </button>
+      <button
+        v-for="category in categories"
+        :key="category"
+        type="button"
+        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap"
+        :class="
+          selectedCategory === category
+            ? 'bg-n-brand text-white'
+            : 'bg-n-slate-3 text-n-slate-11 hover:bg-n-slate-4'
+        "
+        @click="selectCategory(category)"
+      >
+        {{ category }}
+      </button>
+    </div>
+    <div
       v-if="uiFlags.isFetching && !tickets.length"
       class="flex items-center justify-center flex-1"
     >
@@ -76,7 +136,7 @@ export default {
       {{ $t('TICKETS_LIST.EMPTY') }}
     </div>
     <button
-      v-for="ticket in tickets"
+      v-for="ticket in filteredTickets"
       :key="ticket.id"
       type="button"
       class="flex flex-col gap-1 p-3 text-left rounded-lg bg-n-solid-2 hover:bg-n-solid-3 dark:bg-n-solid-2 dark:hover:bg-n-solid-3"
@@ -117,7 +177,7 @@ export default {
       >
         {{ ticket.last_message }}
       </p>
-      <span class="text-xs text-n-slate-10">{{ formattedDate(ticket) }}</span>
+      <div class="text-xs text-n-slate-10">{{ ticketMeta(ticket) }}</div>
     </button>
   </div>
 </template>

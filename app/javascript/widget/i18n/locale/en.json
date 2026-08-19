@@ -54,6 +54,7 @@
     "EMPTY": "You haven't created any requests yet",
     "TICKET_NUMBER": "Request #{id}",
     "UNREAD_MAX": "9+",
+    "ALL_CATEGORIES": "All",
     "STATUS": {
       "OPEN": "Open",
       "PENDING": "Pending",

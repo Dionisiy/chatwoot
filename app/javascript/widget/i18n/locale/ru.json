@@ -54,6 +54,7 @@
     "EMPTY": "У вас пока нет заявок",
     "TICKET_NUMBER": "Заявка №{id}",
     "UNREAD_MAX": "9+",
+    "ALL_CATEGORIES": "Все",
     "STATUS": {
       "OPEN": "Открыта",
       "PENDING": "В ожидании",
