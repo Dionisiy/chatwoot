@@ -33,10 +33,14 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
     # without time zone (t.datetime без явного timestamptz в схеме); COALESCE
     # смешанных типов падает в Postgres ("cannot be matched"), поэтому
     # заглушка передаётся биндом, а не голым SQL-выражением.
+    # Тот же default_scope на Message добавляет ORDER BY created_at и сюда —
+    # с GROUP BY Postgres требует, чтобы все ORDER BY колонки были либо в
+    # GROUP BY, либо агрегатом, поэтому сортировку нужно явно сбросить.
     @unread_counts_by_conversation = Message.chat.outgoing
                                              .joins(:conversation)
                                              .where(conversation_id: conversation_ids)
                                              .where('messages.created_at > COALESCE(conversations.contact_last_seen_at, ?)', Time.zone.at(0))
+                                             .reorder(nil)
                                              .group(:conversation_id)
                                              .count
   end
