@@ -24,10 +24,14 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
                                              .select('DISTINCT ON (conversation_id) conversation_id, content')
                                              .index_by(&:conversation_id)
 
+    # to_timestamp(0) отдаёт timestamptz, а contact_last_seen_at — timestamp
+    # without time zone (t.datetime без явного timestamptz в схеме); COALESCE
+    # смешанных типов падает в Postgres ("cannot be matched"), поэтому
+    # заглушка передаётся биндом, а не голым SQL-выражением.
     @unread_counts_by_conversation = Message.chat.outgoing
                                              .joins(:conversation)
                                              .where(conversation_id: conversation_ids)
-                                             .where('messages.created_at > COALESCE(conversations.contact_last_seen_at, to_timestamp(0))')
+                                             .where('messages.created_at > COALESCE(conversations.contact_last_seen_at, ?)', Time.zone.at(0))
                                              .group(:conversation_id)
                                              .count
   end
