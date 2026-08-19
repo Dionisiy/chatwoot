@@ -102,10 +102,12 @@ export default {
     прокручиваемая область — без паддинга, так что sticky-строка прилипает
     к верху естественно, без хаков с отрицательными margin.
   -->
-  <div class="flex flex-col flex-1 min-h-0 overflow-auto no-scrollbar">
+  <div
+    class="flex flex-col flex-1 min-h-0 overflow-auto no-scrollbar overscroll-y-contain"
+  >
     <div
       v-if="categories.length > 1"
-      class="sticky top-0 z-10 flex items-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar bg-n-slate-2 dark:bg-n-solid-1"
+      class="sticky top-0 z-10 flex items-center gap-2 px-4 py-4 overflow-x-auto no-scrollbar overscroll-x-contain bg-n-slate-2 dark:bg-n-solid-1"
     >
       <button
         type="button"
