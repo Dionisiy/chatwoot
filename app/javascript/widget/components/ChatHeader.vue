@@ -25,7 +25,7 @@ const onBackButtonClick = () => {
 </script>
 
 <template>
-  <header class="flex justify-between w-full p-4 bg-n-background gap-2">
+  <header class="flex justify-between w-full p-3 bg-n-background gap-2">
     <div class="flex items-center">
       <button
         v-if="showBackButton"
@@ -40,7 +40,7 @@ const onBackButtonClick = () => {
         :src="avatarUrl"
         alt="avatar"
       />
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col gap-0.5">
         <div
           class="flex items-center text-base font-medium leading-4 text-n-slate-12"
         >

@@ -105,11 +105,11 @@ export default {
   <div class="flex flex-col flex-1 overflow-auto">
     <div
       v-if="categories.length > 1"
-      class="sticky top-0 z-10 flex items-center gap-1.5 px-4 py-2 overflow-x-auto bg-n-slate-2 dark:bg-n-solid-1"
+      class="sticky top-0 z-10 flex items-center gap-2 px-4 py-3 overflow-x-auto bg-n-slate-2 dark:bg-n-solid-1"
     >
       <button
         type="button"
-        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap outline-none"
+        class="px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap outline-none"
         :class="
           !selectedCategory
             ? 'bg-n-brand text-white'
@@ -123,7 +123,7 @@ export default {
         v-for="category in categories"
         :key="category"
         type="button"
-        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap outline-none"
+        class="px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap outline-none"
         :class="
           selectedCategory === category
             ? 'bg-n-brand text-white'
