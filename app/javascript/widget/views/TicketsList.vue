@@ -98,7 +98,7 @@ export default {
     >
       <button
         type="button"
-        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap"
+        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap outline-none"
         :class="
           !selectedCategory
             ? 'bg-n-brand text-white'
@@ -112,7 +112,7 @@ export default {
         v-for="category in categories"
         :key="category"
         type="button"
-        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap"
+        class="px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap outline-none"
         :class="
           selectedCategory === category
             ? 'bg-n-brand text-white'
@@ -139,7 +139,7 @@ export default {
       v-for="ticket in filteredTickets"
       :key="ticket.id"
       type="button"
-      class="flex flex-col gap-1 p-3 text-left rounded-lg bg-n-solid-2 hover:bg-n-solid-3 dark:bg-n-solid-2 dark:hover:bg-n-solid-3"
+      class="flex flex-col gap-1 p-3 text-left rounded-lg outline-none bg-n-solid-2 hover:bg-n-solid-3 dark:bg-n-solid-2 dark:hover:bg-n-solid-3"
       :class="{ 'ring-1 ring-n-ruby-9': ticket.unread_count > 0 }"
       @click="openTicket(ticket)"
     >
