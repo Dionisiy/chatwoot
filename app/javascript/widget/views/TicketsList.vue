@@ -94,7 +94,7 @@ export default {
   <div class="flex flex-col flex-1 gap-2 p-4 overflow-auto">
     <div
       v-if="categories.length > 1"
-      class="sticky top-0 z-10 flex items-center gap-1.5 px-4 pt-4 pb-2 -mx-4 -mt-4 overflow-x-auto bg-n-slate-2 dark:bg-n-solid-1"
+      class="sticky top-0 z-10 flex items-center gap-1.5 px-4 pt-2 pb-2 mb-2 -mx-4 -mt-4 overflow-x-auto bg-n-slate-2 dark:bg-n-solid-1"
     >
       <button
         type="button"

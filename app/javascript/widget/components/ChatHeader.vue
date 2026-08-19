@@ -25,7 +25,7 @@ const onBackButtonClick = () => {
 </script>
 
 <template>
-  <header class="flex justify-between w-full p-5 bg-n-background gap-2">
+  <header class="flex justify-between w-full p-4 bg-n-background gap-2">
     <div class="flex items-center">
       <button
         v-if="showBackButton"
