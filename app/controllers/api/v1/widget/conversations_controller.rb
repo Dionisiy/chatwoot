@@ -9,8 +9,27 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
   # Список всех тикетов контакта (для экрана "Мои заявки" в виджете) —
   # в отличие от index/conversation (conversations.last), отдаёт все
   # диалоги контакта, а не только последний. См. base_controller#conversations.
+  #
+  # last_message/unread_count раньше считались по одному запросу на
+  # каждую заявку в jbuilder (N+1, заметно тормозило при большом числе
+  # тикетов) — здесь оба значения собираются двумя батч-запросами и
+  # передаются в jbuilder уже готовыми хэшами conversation_id => значение.
   def list
     @conversations = conversations.order(last_activity_at: :desc)
+    conversation_ids = @conversations.map(&:id)
+
+    @last_messages_by_conversation = Message.chat
+                                             .where(conversation_id: conversation_ids)
+                                             .order(:conversation_id, created_at: :desc)
+                                             .select('DISTINCT ON (conversation_id) conversation_id, content')
+                                             .index_by(&:conversation_id)
+
+    @unread_counts_by_conversation = Message.chat.outgoing
+                                             .joins(:conversation)
+                                             .where(conversation_id: conversation_ids)
+                                             .where('messages.created_at > COALESCE(conversations.contact_last_seen_at, to_timestamp(0))')
+                                             .group(:conversation_id)
+                                             .count
   end
 
   def create
