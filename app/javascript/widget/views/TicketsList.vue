@@ -102,7 +102,7 @@ export default {
     прокручиваемая область — без паддинга, так что sticky-строка прилипает
     к верху естественно, без хаков с отрицательными margin.
   -->
-  <div class="flex flex-col flex-1 overflow-auto">
+  <div class="flex flex-col flex-1 min-h-0 overflow-auto no-scrollbar">
     <div
       v-if="categories.length > 1"
       class="sticky top-0 z-10 flex items-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar bg-n-slate-2 dark:bg-n-solid-1"
@@ -134,7 +134,7 @@ export default {
         {{ category }}
       </button>
     </div>
-    <div class="flex flex-col flex-1 gap-2 p-4">
+    <div class="flex flex-col gap-2 p-4">
       <div
         v-if="uiFlags.isFetching && !tickets.length"
         class="flex items-center justify-center flex-1"
