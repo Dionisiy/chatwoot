@@ -18,9 +18,14 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
     @conversations = conversations.order(last_activity_at: :desc)
     conversation_ids = @conversations.map(&:id)
 
+    # Message задаёт default_scope { order(created_at: :asc) } — обычный
+    # .order(...) добавляется после него, и итоговый ORDER BY не начинается
+    # с conversation_id, из-за чего Postgres падает на DISTINCT ON
+    # ("expressions must match initial ORDER BY expressions"). .reorder
+    # полностью заменяет сортировку, а не дополняет её.
     @last_messages_by_conversation = Message.chat
                                              .where(conversation_id: conversation_ids)
-                                             .order(:conversation_id, created_at: :desc)
+                                             .reorder(:conversation_id, created_at: :desc)
                                              .select('DISTINCT ON (conversation_id) conversation_id, content')
                                              .index_by(&:conversation_id)
 
