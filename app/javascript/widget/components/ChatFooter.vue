@@ -11,6 +11,8 @@ import { IFrameHelper } from '../helpers/utils';
 import { CHATWOOT_ON_START_CONVERSATION } from '../constants/sdkEvents';
 import { emitter } from 'shared/helpers/mitt';
 import { clearActiveConversationId } from '../helpers/activeConversation';
+import configMixin from 'widget/mixins/configMixin';
+import { CONVERSATION_STATUS } from 'shared/constants/messages';
 
 const TRANSCRIPT_COOLDOWN_MS = 15000;
 
@@ -20,6 +22,7 @@ export default {
     CustomButton,
     FooterReplyTo,
   },
+  mixins: [configMixin],
   setup() {
     const router = useRouter();
     return { router };
@@ -39,6 +42,7 @@ export default {
       conversationSize: 'conversation/getConversationSize',
       currentUser: 'contacts/getCurrentUser',
       isWidgetStyleFlat: 'appConfig/isWidgetStyleFlat',
+      canUserEndConversation: 'appConfig/getCanUserEndConversation',
     }),
     textColor() {
       return getContrastingTextColor(this.widgetColor);
@@ -57,6 +61,31 @@ export default {
     hasReplyTo() {
       return (
         this.inReplyTo && (this.inReplyTo.content || this.inReplyTo.attachments)
+      );
+    },
+    conversationStatus() {
+      return this.conversationAttributes.status;
+    },
+    canLeaveConversation() {
+      return [
+        CONVERSATION_STATUS.OPEN,
+        CONVERSATION_STATUS.SNOOZED,
+        CONVERSATION_STATUS.PENDING,
+      ].includes(this.conversationStatus);
+    },
+    showStartNewConversationButton() {
+      return this.conversationSize > 0;
+    },
+    showEndConversationButton() {
+      return (
+        this.canLeaveConversation &&
+        this.canUserEndConversation &&
+        this.hasEndConversationEnabled
+      );
+    },
+    showFooterActionButtons() {
+      return (
+        this.showStartNewConversationButton || this.showEndConversationButton
       );
     },
   },
@@ -103,6 +132,9 @@ export default {
     },
     toggleReplyTo(message) {
       this.inReplyTo = message;
+    },
+    resolveConversation() {
+      this.$store.dispatch('conversation/resolveConversation');
     },
     startTranscriptCooldown() {
       this.transcriptCooldown = true;
@@ -159,14 +191,22 @@ export default {
       :on-send-message="handleSendMessage"
       :on-send-attachment="handleSendAttachment"
     />
-    <CustomButton
-      v-if="conversationSize > 0"
-      type="clear"
-      class="font-normal"
-      @click="startNewConversation"
-    >
-      {{ $t('START_ANOTHER_CONVERSATION') }}
-    </CustomButton>
+    <div v-if="showFooterActionButtons" class="flex gap-2 mt-2">
+      <CustomButton
+        v-if="showStartNewConversationButton"
+        class="flex-1 text-center !mx-0 !mt-0 !px-2 !py-2.5 !text-sm !shadow-none outline outline-1 outline-n-container !bg-n-background dark:!bg-n-solid-2 !text-n-slate-12 hover:!bg-n-slate-3 dark:hover:!bg-n-solid-3"
+        @click="startNewConversation"
+      >
+        {{ $t('START_ANOTHER_CONVERSATION') }}
+      </CustomButton>
+      <CustomButton
+        v-if="showEndConversationButton"
+        class="flex-1 text-center !mx-0 !mt-0 !px-2 !py-2.5 !text-sm !shadow-none outline outline-1 outline-n-container !bg-n-background dark:!bg-n-solid-2 !text-n-slate-12 hover:!bg-n-slate-3 dark:hover:!bg-n-solid-3"
+        @click="resolveConversation"
+      >
+        {{ $t('END_CONVERSATION') }}
+      </CustomButton>
+    </div>
   </footer>
   <div v-else>
     <CustomButton
