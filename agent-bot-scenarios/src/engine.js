@@ -128,13 +128,17 @@ async function renderNode(client, conversationId, nodeId, state) {
     // независимо от будущих правок текста в редакторе номер заявки не
     // потеряется.
     await client.sendText(conversationId, `${node.message}\nНомер заявки: ${conversationId}`);
+    // group (команда) и label (метка/подкатегория) независимы друг от друга —
+    // например, у веток финансов одновременно есть и распределение по
+    // команде, и метка подкатегории для фильтрации в списке меток.
     if (node.group) {
       try {
         await client.assignTeamByName(conversationId, node.group);
       } catch (err) {
         console.error('[engine] assignTeamByName failed:', err.message);
       }
-    } else if (node.label) {
+    }
+    if (node.label) {
       try {
         await client.addLabel(conversationId, node.label);
       } catch (err) {

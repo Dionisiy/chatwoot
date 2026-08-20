@@ -72,11 +72,15 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       });
     },
 
-    // Навесить лейбл на диалог — способ передачи "живому" специалисту
-    // (агент/отдел мониторит очередь по лейблу).
+    // Навесить лейбл(ы) на диалог — способ передачи "живому" специалисту
+    // (агент/отдел мониторит очередь по лейблу). Эндпоинт Chatwoot заменяет
+    // ВЕСЬ список лейблов присланным (см. Labelable#update_labels), а не
+    // добавляет к существующим — поэтому label может быть массивом: так
+    // подкатегория (например "finance-fop") не стирает родительскую
+    // категорию ("finance"), проставленную автоматизацией раньше.
     async addLabel(conversationId, label) {
       return http.post(`/conversations/${conversationId}/labels`, {
-        labels: [label],
+        labels: Array.isArray(label) ? label : [label],
       });
     },
 
