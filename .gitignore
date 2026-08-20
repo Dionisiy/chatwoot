@@ -104,3 +104,9 @@ CLAUDE.local.md
 .pnpm-store/*
 local/
 Procfile.worktree
+
+# билд-артефакты Sprockets/Vite — не версионируются, пересобираются assets:precompile
+public/assets/
+
+# живые данные редактора /admin — правятся через UI, не через git (см. AGENTS.md)
+agent-bot-scenarios/src/flows.json
