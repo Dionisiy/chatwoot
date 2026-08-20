@@ -61,6 +61,20 @@
 - Prefer `with_modified_env` (from spec helpers) over stubbing `ENV` directly in specs
 - Specs in parallel/reloading environments: prefer comparing `error.class.name` over constant class equality when asserting raised errors
 
+## SlideEdu Droplet / Deploy Notes (важно, читать перед деплоем)
+
+- **Два независимых деплой-таргета на одном дропле**, не путать:
+  - Основной Chatwoot (Rails+Vite) — systemd-юниты `chatwoot-web.1.service` / `chatwoot-worker.1.service`.
+  - `agent-bot-scenarios/` — отдельный Node-процесс под pm2, имя процесса `slideedu-agent-bot`, живёт под линукс-юзером `chatwoot` (НЕ под root). Все pm2/node-команды для него — только `sudo -u chatwoot -i ...` (флаг `-i` обязателен, без него `spawn node EACCES`; `pm2 list` под root покажет ЧУЖОЙ процесс `slideedu-dev`, не наш).
+  - У `agent-bot-scenarios` есть свой `deploy.sh` (npm install + vite build admin/dashboard + pm2 start/restart + health-check на `/health`). У основного Chatwoot — свой `deploy.sh` в корне репозитория (bundle install + assets:clobber → assets:precompile + рестарт systemd-юнитов + health-check). **Всегда сверяться с этими скриптами, а не гонять команды вручную по памяти.**
+- **Ветка на дропле — `custom/slideedu-stage`, а не `custom/slideedu`.** Разошлись после коммита `9c202793d` (Bump version to 4.16.2). На дропле есть локальные коммиты (автор Dionisiy), которых нет на GitHub — обычный `git pull`/`git reset --hard origin/...` может их снести. Перед любым git-действием на дропле — свериться, не удивляться расхождению.
+- **SSH-ключ дропла к GitHub может быть не настроен** (`git@github.com: Permission denied (publickey)`) — тогда `git pull`/`fetch` с дропла не работает вообще, пока ключ не почини́т пользователь. Пуш из локального рабочего чекаута на GitHub по HTTPS при этом работать может нормально.
+- **Флоу изменений в коде: сначала весь код и правки — локально в репозитории, прогнать lint/синтаксис, и только потом деплоить на дроплет.** Не редактировать код бота прямо на сервере в обход локального репозитория (кроме случаев, когда git туда физически не достучаться и это явно оговорено как временный костыль).
+- **`agent-bot-scenarios/src/flows.json` НЕ версионируется git'ом** (в `.gitignore`, живые данные редактора `/admin`). Редактировать его — либо через `/agent-bot/admin/` (UI или напрямую `GET`/`POST /agent-bot/admin/api/flows`, Basic Auth password = личный access token админа Chatwoot), либо через прямую правку файла на дропле. Никогда не считать, что локальная копия `flows.json` совпадает с боевой.
+- **Обязательный порядок для Vite-сборки Chatwoot**: `assets:clobber` ДО `assets:precompile` — без этого прекомпиляция иногда молча не полностью пересобирает часть чанков (например виджет-бандл), и команда завершается без ошибок, но на сайте остаётся старая версия.
+- **На этом дропле (2vCPU/4GB RAM + 8GB swap) дефолтный V8-хип падает в OOM при сборке Vite** — всегда явно поднимать лимит: `NODE_OPTIONS=--max-old-space-size=4096` перед `assets:clobber`/`assets:precompile`.
+- Если `git add`/`git commit` в примонтированной рабочей папке ведут себя нестабильно (файлы молча выпадают из индекса, `.git/index.lock` не даёт себя удалить) — сначала вызвать `allow_cowork_file_delete` на конкретный файл лока, затем коммитить одной атомарной командой `git commit -- <единственный файл>` (не через отдельный `git add`).
+
 ## Codex Worktree Workflow
 
 - Use a separate git worktree + branch per task to keep changes isolated.
