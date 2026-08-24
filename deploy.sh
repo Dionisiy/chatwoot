@@ -51,7 +51,10 @@ sudo systemctl restart chatwoot-web.1.service chatwoot-worker.1.service
 
 echo "==> health check"
 sleep 2
-if curl -fsS "http://localhost:3000/" >/dev/null; then
+# Порт из systemd-юнита (chatwoot-web.1.service Environment=PORT=3001) —
+# не 3000, дефолт Rails; раньше health-check стучался не туда и всегда
+# считал сервис недоступным сразу после успешного рестарта.
+if curl -fsS "http://localhost:3001/" >/dev/null; then
   echo "OK: backend отвечает"
 else
   echo "!! backend не отвечает после рестарта — смотрите: sudo journalctl -u chatwoot-web.1.service -n 50" >&2
