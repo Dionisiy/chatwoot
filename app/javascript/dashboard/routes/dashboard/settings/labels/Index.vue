@@ -7,6 +7,7 @@ import { picoSearch } from '@scmmishra/pico-search';
 
 import AddLabel from './AddLabel.vue';
 import EditLabel from './EditLabel.vue';
+import LabelAccessSettings from './LabelAccessSettings.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -128,6 +129,7 @@ onBeforeMount(() => {
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <LabelAccessSettings />
       <BaseTable
         :headers="tableHeaders"
         :items="filteredRecords"

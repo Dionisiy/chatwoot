@@ -84,6 +84,24 @@
         "YES": "Yes, Delete ",
         "NO": "No, Keep "
       }
+    },
+    "ACCESS_SETTINGS": {
+      "TITLE": "Agent visibility by category",
+      "NOTE": "Controls how per-agent category restrictions (set in Settings → Agents) apply, when at least one agent has restrictions configured. Agents without any restriction are unaffected.",
+      "MATCH_MODE": {
+        "LABEL": "When a conversation has multiple categories",
+        "OPTIONS": {
+          "ANY": "Visible if any one category is allowed",
+          "ALL": "Visible only if every category is allowed"
+        }
+      },
+      "SHOW_UNLABELED": {
+        "LABEL": "Show conversations with no category yet"
+      },
+      "API": {
+        "SUCCESS_MESSAGE": "Settings updated successfully",
+        "ERROR_MESSAGE": "There was an error, please try again"
+      }
     }
   }
 }
