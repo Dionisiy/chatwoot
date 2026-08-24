@@ -18,6 +18,7 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
     )
 
     @agent = builder.perform
+    sync_label_restrictions if @agent
   rescue AgentBuilder::LimitExceededError => e
     render_payment_required(e.message)
   end
@@ -25,6 +26,7 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
   def update
     @agent.update!(agent_params.slice(:name).compact)
     @agent.current_account_user.update!(agent_params.slice(*account_user_attributes).compact)
+    sync_label_restrictions
   end
 
   def destroy
@@ -114,6 +116,20 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
 
   def delete_user_record(agent)
     DeleteObjectJob.perform_later(agent) if agent.reload.account_users.blank?
+  end
+
+  # label_ids не пришёл в запросе — значит форма его не трогала, ничего не
+  # меняем (иначе создание агента без выбора меток стирало бы уже
+  # настроенные ограничения при следующем безобидном PATCH). Пришёл (пусть
+  # даже пустым массивом) — синхронизируем полностью, см. Settings → Agents.
+  def sync_label_restrictions
+    return unless params[:agent]&.key?(:label_ids)
+
+    label_ids = Array(params[:agent][:label_ids]).map(&:to_i)
+    allowed_labels = Current.account.labels.where(id: label_ids)
+
+    allowed_labels.each { |label| AgentLabel.find_or_create_by!(account: Current.account, user: @agent, label: label) }
+    @agent.agent_labels.where(account_id: Current.account.id).where.not(label_id: allowed_labels.select(:id)).destroy_all
   end
 end
 

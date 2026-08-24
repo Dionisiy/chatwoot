@@ -12,3 +12,4 @@ json.name resource.name
 json.role resource.role
 json.thumbnail resource.avatar_url
 json.custom_role_id resource.current_account_user&.custom_role_id if ChatwootApp.enterprise?
+json.restricted_label_ids resource.agent_labels.where(account_id: Current.account&.id).pluck(:label_id)

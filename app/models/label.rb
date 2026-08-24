@@ -21,6 +21,7 @@ class Label < ApplicationRecord
   include AccountCacheRevalidator
 
   belongs_to :account
+  has_many :agent_labels, dependent: :destroy
 
   validates :title,
             presence: { message: I18n.t('errors.validations.presence') },

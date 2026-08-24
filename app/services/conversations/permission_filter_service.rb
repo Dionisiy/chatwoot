@@ -9,12 +9,27 @@ class Conversations::PermissionFilterService
   end
 
   def perform
+    apply_label_restriction(role_scoped_conversations)
+  end
+
+  private
+
+  # Точка, которую переопределяет Enterprise::Conversations::PermissionFilterService
+  # (custom roles) — ограничение по меткам (apply_label_restriction) применяется
+  # поверх результата в любом случае, независимо от того, какой веткой сюда
+  # пришли.
+  def role_scoped_conversations
     return conversations if user_role == 'administrator'
 
     accessible_conversations
   end
 
-  private
+  # Отдельный, независимый слой видимости (см. Conversations::LabelAccessFilterService)
+  # — по умолчанию (у агента не настроено ни одной разрешённой метки) ничего
+  # не меняет.
+  def apply_label_restriction(scope)
+    Conversations::LabelAccessFilterService.new(scope, user: user, account: account).perform
+  end
 
   def accessible_conversations
     return hinted_accessible_conversations if @plan_hint_selective_filter

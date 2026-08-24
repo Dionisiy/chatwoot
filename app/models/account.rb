@@ -59,6 +59,7 @@ class Account < ApplicationRecord
   store_accessor :settings, :reporting_timezone
   store_accessor :settings, :keep_pending_on_bot_failure
   store_accessor :settings, :captain_auto_resolve_mode, :captain_false_promise_harness_enabled
+  store_accessor :settings, :label_access_match_mode, :label_access_show_unlabeled
   include AccountCaptainAutoResolve
 
   has_many :account_users, dependent: :destroy_async
@@ -87,6 +88,7 @@ class Account < ApplicationRecord
   has_many :hooks, dependent: :destroy_async, class_name: 'Integrations::Hook'
   has_many :inboxes, dependent: :destroy_async
   has_many :labels, dependent: :destroy_async
+  has_many :agent_labels, dependent: :destroy_async
   has_many :line_channels, dependent: :destroy_async, class_name: '::Channel::Line'
   has_many :mentions, dependent: :destroy_async
   has_many :messages, dependent: :destroy_async
@@ -165,6 +167,19 @@ class Account < ApplicationRecord
 
   def api_and_webhooks_enabled?
     true
+  end
+
+  # Дефолты для ограничения видимости диалогов по меткам (см.
+  # Conversations::LabelAccessFilterService) — nil означает "ещё не
+  # трогали в настройках", ведём себя как явно заданное значение по
+  # умолчанию, а не как "фича выключена".
+  def label_access_match_mode
+    super || 'any'
+  end
+
+  def label_access_show_unlabeled?
+    value = super
+    value.nil? ? true : ActiveModel::Type::Boolean.new.cast(value)
   end
 
   def locale_english_name

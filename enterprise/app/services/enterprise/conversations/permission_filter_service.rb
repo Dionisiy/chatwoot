@@ -1,11 +1,14 @@
 module Enterprise::Conversations::PermissionFilterService
-  def perform
+  private
+
+  # Переопределяем role_scoped_conversations (не perform) — так итоговый
+  # apply_label_restriction в базовом классе применяется поверх результата
+  # custom role permissions точно так же, как и поверх обычного inbox-скоупа.
+  def role_scoped_conversations
     return filter_by_permissions(permissions) if user_has_custom_role?
 
     super
   end
-
-  private
 
   def user_has_custom_role?
     user_role == 'agent' && account_user&.custom_role_id.present?
