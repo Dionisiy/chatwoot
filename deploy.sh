@@ -5,19 +5,19 @@
 # проекта запускается в реальности):
 #   bash deploy.sh
 #
-# ВАЖНО: этот скрипт НЕ синхронизирует git сам. Ветка на дропле (custom/slideedu-stage)
-# реально расходится с origin на десятки локальных коммитов — `git reset --hard`
-# их бы снёс. Синхронизацию делает вызывающий вручную, до запуска этого скрипта
-# (см. agent-bot-scenarios/deploy.sh — та же причина и тот же принцип там).
+# ВАЖНО: этот скрипт НЕ синхронизирует git сам — синхронизацию (git fetch +
+# reset/merge на custom/slideedu, см. AGENTS.md) делает вызывающий вручную,
+# до запуска этого скрипта (см. agent-bot-scenarios/deploy.sh — тот же принцип).
 #
 # Что делает:
 #   1. bundle install (если Gemfile.lock менялся)
-#   2. assets:clobber, ЗАТЕМ assets:precompile — именно в этом порядке.
+#   2. db:migrate (применяет новые миграции, если есть)
+#   3. assets:clobber, ЗАТЕМ assets:precompile — именно в этом порядке.
 #      Без clobber прекомпиляция иногда молча не пересобирает часть чанков
 #      (например виджет-бандл), и на сайте остаётся старая версия при том что
 #      команда отрабатывает без ошибок.
-#   3. рестарт chatwoot-web.1.service / chatwoot-worker.1.service
-#   4. health-check по локальному порту
+#   4. рестарт chatwoot-web.1.service / chatwoot-worker.1.service
+#   5. health-check по локальному порту
 #
 # Bot-сервис (agent-bot-scenarios, отдельный Node-процесс под pm2) этот скрипт
 # НЕ трогает — для него используйте agent-bot-scenarios/deploy.sh отдельно.
@@ -39,6 +39,9 @@ fi
 
 echo "==> bundle install"
 bundle check >/dev/null 2>&1 || bundle install
+
+echo "==> db:migrate"
+bundle exec rails db:migrate
 
 echo "==> assets:clobber"
 bundle exec rails assets:clobber
