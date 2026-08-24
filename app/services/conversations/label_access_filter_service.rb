@@ -49,7 +49,11 @@ class Conversations::LabelAccessFilterService
     forbidden_titles = @account.labels.where.not(title: allowed_titles).pluck(:title)
     return @conversations.pluck(:id) if forbidden_titles.empty?
 
-    @conversations.where.not(id: @conversations.tagged_with(forbidden_titles, any: true).select(:id)).pluck(:id)
+    # `.select(:id)` as a NOT IN subquery would append to tagged_with's own
+    # `SELECT conversations.*`, giving Postgres a multi-column subquery
+    # ("subquery has too many columns") — pluck concrete ids instead.
+    forbidden_ids = @conversations.tagged_with(forbidden_titles, any: true).pluck(:id)
+    @conversations.where.not(id: forbidden_ids).pluck(:id)
   end
 
   def unlabeled_ids
