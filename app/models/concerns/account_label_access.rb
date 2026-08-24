@@ -9,8 +9,16 @@ module AccountLabelAccess
     super || 'any'
   end
 
-  def label_access_show_unlabeled?
+  # store_accessor only generates the bang-less `label_access_show_unlabeled`
+  # getter (matching the settings key), so `super` here overrides that one;
+  # `label_access_show_unlabeled?` is a separate method with no store_accessor
+  # counterpart to call `super` on.
+  def label_access_show_unlabeled
     value = super
-    value.nil? || ActiveModel::Type::Boolean.new.cast(value)
+    value.nil? ? true : value
+  end
+
+  def label_access_show_unlabeled?
+    ActiveModel::Type::Boolean.new.cast(label_access_show_unlabeled)
   end
 end
