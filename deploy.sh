@@ -53,11 +53,20 @@ echo "==> restart chatwoot-web / chatwoot-worker"
 sudo systemctl restart chatwoot-web.1.service chatwoot-worker.1.service
 
 echo "==> health check"
-sleep 2
 # Порт из systemd-юнита (chatwoot-web.1.service Environment=PORT=3001) —
-# не 3000, дефолт Rails; раньше health-check стучался не туда и всегда
-# считал сервис недоступным сразу после успешного рестарта.
-if curl -fsS "http://localhost:3001/" >/dev/null; then
+# не 3000, дефолт Rails. Пума поднимается не мгновенно (5-15с под нагрузкой
+# после рестарта) — опрашиваем с повтором вместо одного sleep+curl, иначе
+# скрипт репортит ложную ошибку на живом сервисе.
+ok=false
+for _ in $(seq 1 15); do
+  if curl -fsS "http://localhost:3001/" >/dev/null; then
+    ok=true
+    break
+  fi
+  sleep 2
+done
+
+if [ "$ok" = true ]; then
   echo "OK: backend отвечает"
 else
   echo "!! backend не отвечает после рестарта — смотрите: sudo journalctl -u chatwoot-web.1.service -n 50" >&2
