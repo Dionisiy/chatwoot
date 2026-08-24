@@ -15,7 +15,7 @@ module AccountLabelAccess
   # counterpart to call `super` on.
   def label_access_show_unlabeled
     value = super
-    value.nil? ? true : value
+    value.nil? || value
   end
 
   def label_access_show_unlabeled?
