@@ -477,18 +477,28 @@ const menuItems = computed(() => {
           ...buildSortConfig(SIDEBAR_SORT_SECTIONS.LABELS),
           collapsible: true,
           showTreeLine: true,
-          children: sortedLabels.value.map(label => ({
-            name: `${label.title}-${label.id}`,
-            label: label.title,
-            badgeCount: getLabelUnreadCount.value(label.id),
-            icon: h('span', {
-              class: `size-[8px] rounded-sm`,
-              style: { backgroundColor: label.color },
-            }),
-            to: accountScopedRoute('label_conversations', {
+          children: sortedLabels.value.map(label => {
+            // Метка вида "finance-consult" при существующей метке "finance" —
+            // подкатегория: визуально сдвигаем её под родителя, чтобы в
+            // сайдбаре читалась иерархия (сами метки в Chatwoot плоские).
+            const isSubLabel = sortedLabels.value.some(
+              parent =>
+                parent.id !== label.id &&
+                label.title.startsWith(`${parent.title}-`)
+            );
+            return {
+              name: `${label.title}-${label.id}`,
               label: label.title,
-            }),
-          })),
+              badgeCount: getLabelUnreadCount.value(label.id),
+              icon: h('span', {
+                class: `size-[8px] rounded-sm shrink-0 ${isSubLabel ? 'ms-3.5' : ''}`,
+                style: { backgroundColor: label.color },
+              }),
+              to: accountScopedRoute('label_conversations', {
+                label: label.title,
+              }),
+            };
+          }),
         },
       ],
     },
