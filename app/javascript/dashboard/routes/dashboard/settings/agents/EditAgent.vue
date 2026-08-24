@@ -38,6 +38,10 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  restrictedLabelIds: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['close']);
@@ -51,6 +55,9 @@ const agentName = ref(props.name);
 const agentAvailability = ref(props.availability);
 const selectedRoleId = ref(props.customRoleId || props.type);
 const agentCredentials = ref({ email: props.email });
+const selectedLabelIds = ref([...props.restrictedLabelIds]);
+
+const labels = useMapGetter('labels/getLabels');
 
 const rules = {
   agentName: { required, minLength: minLength(1) },
@@ -126,6 +133,7 @@ const editAgent = async () => {
       id: props.id,
       name: agentName.value,
       availability: agentAvailability.value,
+      label_ids: selectedLabelIds.value,
     };
 
     if (selectedRole.value.name.startsWith('custom_')) {
@@ -202,6 +210,35 @@ const resetPassword = async () => {
             {{ $t('AGENT_MGMT.EDIT.FORM.AGENT_AVAILABILITY.ERROR') }}
           </span>
         </label>
+      </div>
+
+      <div v-if="labels.length" class="w-full">
+        <label>
+          {{ $t('AGENT_MGMT.EDIT.FORM.LABEL_ACCESS.LABEL') }}
+        </label>
+        <p class="mt-[-0.75rem] mb-2 text-xs text-n-slate-11">
+          {{ $t('AGENT_MGMT.EDIT.FORM.LABEL_ACCESS.HINT') }}
+        </p>
+        <div
+          class="flex flex-wrap gap-x-4 gap-y-2 p-3 max-h-40 overflow-y-auto rounded-md outline outline-1 outline-n-container"
+        >
+          <label
+            v-for="label in labels"
+            :key="label.id"
+            class="flex items-center gap-1.5 text-sm cursor-pointer text-n-slate-12"
+          >
+            <input
+              v-model="selectedLabelIds"
+              type="checkbox"
+              :value="label.id"
+            />
+            <span
+              class="size-2 rounded-sm shrink-0"
+              :style="{ backgroundColor: label.color }"
+            />
+            {{ label.title }}
+          </label>
+        </div>
       </div>
 
       <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">

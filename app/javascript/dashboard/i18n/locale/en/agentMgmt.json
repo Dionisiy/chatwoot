@@ -40,6 +40,10 @@
           "LABEL": "Email Address",
           "PLACEHOLDER": "Please enter an email address of the agent"
         },
+        "LABEL_ACCESS": {
+          "LABEL": "Visible categories",
+          "HINT": "Leave empty to keep seeing every category. Select one or more to limit this agent to those categories only."
+        },
         "SUBMIT": "Add Agent"
       },
       "API": {
@@ -81,6 +85,10 @@
           "LABEL": "Availability",
           "PLACEHOLDER": "Please select an availability status",
           "ERROR": "Availability is required"
+        },
+        "LABEL_ACCESS": {
+          "LABEL": "Visible categories",
+          "HINT": "Leave empty to keep seeing every category. Select one or more to limit this agent to those categories only."
         },
         "SUBMIT": "Edit Agent"
       },

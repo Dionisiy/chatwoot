@@ -15,6 +15,9 @@ const { t } = useI18n();
 const agentName = ref('');
 const agentEmail = ref('');
 const selectedRoleId = ref('agent');
+const selectedLabelIds = ref([]);
+
+const labels = useMapGetter('labels/getLabels');
 
 const rules = {
   agentName: { required },
@@ -69,6 +72,7 @@ const addAgent = async () => {
     const payload = {
       name: agentName.value,
       email: agentEmail.value,
+      label_ids: selectedLabelIds.value,
     };
 
     if (selectedRole.value.name.startsWith('custom_')) {
@@ -145,6 +149,35 @@ const addAgent = async () => {
             @input="v$.agentEmail.$touch"
           />
         </label>
+      </div>
+
+      <div v-if="labels.length" class="w-full">
+        <label>
+          {{ $t('AGENT_MGMT.ADD.FORM.LABEL_ACCESS.LABEL') }}
+        </label>
+        <p class="mt-[-0.75rem] mb-2 text-xs text-n-slate-11">
+          {{ $t('AGENT_MGMT.ADD.FORM.LABEL_ACCESS.HINT') }}
+        </p>
+        <div
+          class="flex flex-wrap gap-x-4 gap-y-2 p-3 max-h-40 overflow-y-auto rounded-md outline outline-1 outline-n-container"
+        >
+          <label
+            v-for="label in labels"
+            :key="label.id"
+            class="flex items-center gap-1.5 text-sm cursor-pointer text-n-slate-12"
+          >
+            <input
+              v-model="selectedLabelIds"
+              type="checkbox"
+              :value="label.id"
+            />
+            <span
+              class="size-2 rounded-sm shrink-0"
+              :style="{ backgroundColor: label.color }"
+            />
+            {{ label.title }}
+          </label>
+        </div>
       </div>
 
       <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">
