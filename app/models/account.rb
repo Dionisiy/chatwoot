@@ -169,17 +169,14 @@ class Account < ApplicationRecord
     true
   end
 
-  # Дефолты для ограничения видимости диалогов по меткам (см.
-  # Conversations::LabelAccessFilterService) — nil означает "ещё не
-  # трогали в настройках", ведём себя как явно заданное значение по
-  # умолчанию, а не как "фича выключена".
+  # nil означает "ещё не трогали в настройках" (см. Conversations::LabelAccessFilterService) — дефолт, не "выключено".
   def label_access_match_mode
     super || 'any'
   end
 
   def label_access_show_unlabeled?
     value = super
-    value.nil? ? true : ActiveModel::Type::Boolean.new.cast(value)
+    value.nil? || ActiveModel::Type::Boolean.new.cast(value)
   end
 
   def locale_english_name

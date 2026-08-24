@@ -53,6 +53,6 @@ class Conversations::LabelAccessFilterService
   end
 
   def unlabeled_ids
-    @conversations.left_joins(:taggings).where(taggings: { id: nil }).pluck(:id)
+    @conversations.where.missing(:taggings).pluck(:id)
   end
 end
