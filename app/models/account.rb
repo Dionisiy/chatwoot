@@ -61,6 +61,7 @@ class Account < ApplicationRecord
   store_accessor :settings, :captain_auto_resolve_mode, :captain_false_promise_harness_enabled
   store_accessor :settings, :label_access_match_mode, :label_access_show_unlabeled
   include AccountCaptainAutoResolve
+  include AccountLabelAccess
 
   has_many :account_users, dependent: :destroy_async
   has_many :agent_bot_inboxes, dependent: :destroy_async
@@ -167,16 +168,6 @@ class Account < ApplicationRecord
 
   def api_and_webhooks_enabled?
     true
-  end
-
-  # nil означает "ещё не трогали в настройках" (см. Conversations::LabelAccessFilterService) — дефолт, не "выключено".
-  def label_access_match_mode
-    super || 'any'
-  end
-
-  def label_access_show_unlabeled?
-    value = super
-    value.nil? || ActiveModel::Type::Boolean.new.cast(value)
   end
 
   def locale_english_name
