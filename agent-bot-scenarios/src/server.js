@@ -89,19 +89,31 @@ app.get('/dashboard/', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'dashboard.html'));
 });
 
-// clients[].teams и элементы weeklyTrend — Map (см. dashboard.js), а
+// clients[].categories и элементы weeklyTrend — Map (см. dashboard.js), а
 // JSON.stringify(Map) даёт '{}'. Разворачиваем в обычные объекты/массивы
 // перед отправкой — это чисто вопрос сериализации, buildDashboardData саму
 // логику агрегации не меняет.
 function serializeDashboardData(data) {
   return {
     ...data,
-    clients: data.clients.map(c => ({ ...c, teams: Object.fromEntries(c.teams) })),
-    weeklyTrend: data.weeklyTrend.map(([week, teamMap]) => [week, Object.fromEntries(teamMap)]),
+    clients: data.clients.map(c => ({ ...c, categories: Object.fromEntries(c.categories) })),
+    weeklyTrend: data.weeklyTrend.map(([week, categoryMap]) => [week, Object.fromEntries(categoryMap)]),
   };
 }
 
-app.get('/dashboard/api/data', async (_req, res) => {
+// since/until — unix-секунды, произвольный период с фронта (PeriodPicker.vue).
+// Оба необязательны: без них buildDashboardData берёт всю историю диалогов
+// (см. dashboard.js#buildDashboardData).
+function parseRangeParams(req) {
+  const since = req.query.since ? Number(req.query.since) : undefined;
+  const until = req.query.until ? Number(req.query.until) : undefined;
+  return {
+    since: Number.isFinite(since) ? since : undefined,
+    until: Number.isFinite(until) ? until : undefined,
+  };
+}
+
+app.get('/dashboard/api/data', async (req, res) => {
   if (!dashboardClient) {
     res.status(500).json({
       error:
@@ -112,7 +124,7 @@ app.get('/dashboard/api/data', async (_req, res) => {
     return;
   }
   try {
-    const data = await buildDashboardData(dashboardClient);
+    const data = await buildDashboardData(dashboardClient, parseRangeParams(req));
     res.json(serializeDashboardData(data));
   } catch (err) {
     console.error('[dashboard] failed:', err.message);

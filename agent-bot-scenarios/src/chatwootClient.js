@@ -152,12 +152,22 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
 
     // Список диалогов (все статусы), постранично — для дашборда.
     // Ответ: { meta: {...}, payload: [...] }, см.
-    // app/views/api/v1/accounts/conversations/index.json.jbuilder —
-    // каждый элемент payload уже содержит meta.sender (контакт) и
-    // meta.team, так что не нужно отдельно тянуть контакты/команды.
+    // app/views/api/v1/conversations/partials/_conversation.json.jbuilder —
+    // каждый элемент payload уже содержит meta.sender (контакт), meta.team
+    // и labels (массив title меток, cached_label_list_array) — не нужно
+    // отдельно тянуть контакты/команды/метки по каждому диалогу.
     async listConversations({ status = 'all', page = 1 } = {}) {
       const { data } = await http.get('/conversations', { params: { status, page } });
       return data.data;
+    },
+
+    // Список категорий (меток) аккаунта — для дашборда, чтобы сматчить
+    // название категории (label title, как в conv.labels) с её id и
+    // получить среднее время ответа/решения по категории через
+    // getReportSummary({ type: 'label', id }).
+    async listLabels() {
+      const { data } = await http.get('/labels');
+      return data.payload || [];
     },
 
     // Категория, выбранная в pre-chat форме виджета — custom attribute

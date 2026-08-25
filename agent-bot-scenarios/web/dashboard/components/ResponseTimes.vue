@@ -9,11 +9,11 @@ defineProps({
 <template>
   <p class="muted">
     За период {{ formatDate(responseTimes.range.since) }} — {{ formatDate(responseTimes.range.until) }}
-    (последние 90 дней; данные — родные отчёты Chatwoot, с учётом рабочих часов).
+    (данные — родные отчёты Chatwoot, с учётом рабочих часов).
   </p>
   <table>
     <thead>
-      <tr><th>Команда</th><th>Диалогов</th><th>Ср. время ответа</th><th>Ср. время решения</th></tr>
+      <tr><th>Категория</th><th>Диалогов</th><th>Ср. время ответа</th><th>Ср. время решения</th></tr>
     </thead>
     <tbody>
       <tr class="total-row">
@@ -22,14 +22,14 @@ defineProps({
         <td class="num">{{ formatDuration(responseTimes.overall.avg_first_response_time) }}</td>
         <td class="num">{{ formatDuration(responseTimes.overall.avg_resolution_time) }}</td>
       </tr>
-      <tr v-if="!responseTimes.perTeam.length">
-        <td colspan="4" class="muted">Команды не созданы</td>
+      <tr v-if="!responseTimes.perCategory.length">
+        <td colspan="4" class="muted">Нет диалогов с категориями за период</td>
       </tr>
-      <tr v-for="t in responseTimes.perTeam" :key="t.name">
-        <td>{{ t.name }}</td>
-        <td class="num">{{ t.conversations_count ?? '—' }}</td>
-        <td class="num">{{ formatDuration(t.avg_first_response_time) }}</td>
-        <td class="num">{{ formatDuration(t.avg_resolution_time) }}</td>
+      <tr v-for="c in responseTimes.perCategory" :key="c.name">
+        <td>{{ c.name }}</td>
+        <td class="num">{{ c.conversations_count ?? '—' }}</td>
+        <td class="num">{{ formatDuration(c.avg_first_response_time) }}</td>
+        <td class="num">{{ formatDuration(c.avg_resolution_time) }}</td>
       </tr>
     </tbody>
   </table>

@@ -2,20 +2,20 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  weeklyTrend: { type: Array, required: true }, // [[week, { teamName: count }], ...]
-  teamNames: { type: Array, required: true },
+  weeklyTrend: { type: Array, required: true }, // [[week, { categoryName: count }], ...]
+  categoryNames: { type: Array, required: true },
 });
 
 const palette = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)', 'var(--chart-8)'];
 const colorFor = i => palette[i % palette.length];
 
-const max = computed(() => props.weeklyTrend.reduce((m, [, teamMap]) => {
-  const weekTotal = Object.values(teamMap).reduce((a, b) => a + b, 0);
+const max = computed(() => props.weeklyTrend.reduce((m, [, categoryMap]) => {
+  const weekTotal = Object.values(categoryMap).reduce((a, b) => a + b, 0);
   return Math.max(m, weekTotal);
 }, 1));
 
-function weekTotal(teamMap) {
-  return Object.values(teamMap).reduce((a, b) => a + b, 0);
+function weekTotal(categoryMap) {
+  return Object.values(categoryMap).reduce((a, b) => a + b, 0);
 }
 
 function widthPct(count) {
@@ -25,7 +25,7 @@ function widthPct(count) {
 
 <template>
   <div class="legend">
-    <span v-for="(t, i) in teamNames" :key="t" class="legend-item">
+    <span v-for="(t, i) in categoryNames" :key="t" class="legend-item">
       <span class="swatch" :style="{ background: colorFor(i) }" />{{ t }}
     </span>
   </div>
@@ -35,21 +35,21 @@ function widthPct(count) {
       <tr v-if="!weeklyTrend.length">
         <td class="muted">Нет данных</td>
       </tr>
-      <tr v-for="[week, teamMap] in weeklyTrend" :key="week">
+      <tr v-for="[week, categoryMap] in weeklyTrend" :key="week">
         <td class="muted">{{ week }}</td>
         <td class="bar-cell">
           <div class="bar-track">
             <span
-              v-for="(t, i) in teamNames"
+              v-for="(t, i) in categoryNames"
               :key="t"
-              v-show="teamMap[t]"
+              v-show="categoryMap[t]"
               class="bar-segment"
-              :style="{ width: widthPct(teamMap[t] || 0) + '%', background: colorFor(i) }"
-              :title="`${t}: ${teamMap[t] || 0}`"
+              :style="{ width: widthPct(categoryMap[t] || 0) + '%', background: colorFor(i) }"
+              :title="`${t}: ${categoryMap[t] || 0}`"
             />
           </div>
         </td>
-        <td class="num">{{ weekTotal(teamMap) }}</td>
+        <td class="num">{{ weekTotal(categoryMap) }}</td>
       </tr>
     </tbody>
   </table>

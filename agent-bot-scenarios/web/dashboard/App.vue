@@ -1,20 +1,26 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import ClientsTable from './components/ClientsTable.vue';
 import ResponseTimes from './components/ResponseTimes.vue';
 import WeeklyTrend from './components/WeeklyTrend.vue';
+import CategoryBreakdown from './components/CategoryBreakdown.vue';
+import PeriodPicker from './components/PeriodPicker.vue';
 
 const data = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-async function load() {
+async function load(range) {
   loading.value = true;
   error.value = null;
   try {
+    const params = new URLSearchParams();
+    if (range?.since) params.set('since', range.since);
+    if (range?.until) params.set('until', range.until);
     // Без ведущего слэша — см. комментарий у app.get('/dashboard', ...) в
     // server.js (nginx-прокси /agent-bot/ + относительные пути).
-    const res = await fetch('api/data');
+    const qs = params.toString();
+    const res = await fetch(qs ? `api/data?${qs}` : 'api/data');
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
     data.value = body;
@@ -25,12 +31,25 @@ async function load() {
   }
 }
 
-onMounted(load);
+// PeriodPicker сам эмитит начальный диапазон при монтировании (watch с
+// immediate: true) — отдельный onMounted(load) не нужен, первая загрузка
+// пойдёт через @change.
+let lastRange = null;
+function onRangeChange(range) {
+  lastRange = range;
+  load(range);
+}
+
+function refresh() {
+  load(lastRange);
+}
 </script>
 
 <template>
   <div class="page">
     <h1>Статистика заявок SlideEdu</h1>
+
+    <PeriodPicker @change="onRangeChange" />
 
     <div v-if="loading" class="meta">Загрузка…</div>
     <div v-else-if="error" class="error">
@@ -39,16 +58,21 @@ onMounted(load);
 
     <template v-else-if="data">
       <div class="meta">
-        Сформировано: {{ data.generatedAt }} · Всего диалогов в выборке: {{ data.totalConversations }}
+        Сформировано: {{ data.generatedAt }} · Обращений за выбранный период: {{ data.totalConversations }}
         <span v-if="data.truncated" class="warn">
           — выборка ограничена (очень много диалогов), см. MAX_PAGES в src/dashboard.js
         </span>
-        · <button class="refresh" type="button" @click="load">обновить</button>
+        · <button class="refresh" type="button" @click="refresh">обновить</button>
       </div>
 
       <section>
-        <h2>Клиент × тема (все заявки за всё время)</h2>
-        <ClientsTable :clients="data.clients" :team-names="data.teamNames" />
+        <h2>Обращения по категориям и сабкатегориям</h2>
+        <CategoryBreakdown :categories="data.categories" />
+      </section>
+
+      <section>
+        <h2>Клиент × категория</h2>
+        <ClientsTable :clients="data.clients" :category-names="data.categoryNames" />
       </section>
 
       <section>
@@ -57,8 +81,8 @@ onMounted(load);
       </section>
 
       <section>
-        <h2>Тренд заявок по неделям (по темам)</h2>
-        <WeeklyTrend :weekly-trend="data.weeklyTrend" :team-names="data.teamNames" />
+        <h2>Тренд заявок по неделям (по категориям)</h2>
+        <WeeklyTrend :weekly-trend="data.weeklyTrend" :category-names="data.categoryNames" />
       </section>
     </template>
   </div>
