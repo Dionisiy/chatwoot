@@ -122,9 +122,14 @@ function aggregate(conversations) {
 // since/until — то же окно, что выбрано в UI дашборда, для отчётов по
 // времени ответа/решения — как по аккаунту в целом, так и по каждой
 // категории (метке) отдельно, через родной отчёт Chatwoot (учитывает
-// рабочие часы, переназначения и т.п.).
+// рабочие часы, переназначения и т.п.). Chatwoot-отчёты требуют оба конца
+// диапазона — при "весь период" (since/until не заданы с UI) явно
+// подставляем epoch..сейчас, иначе API отчётов молча возвращает нули.
 async function getResponseTimeSummary(client, { since, until, categoryNames } = {}) {
-  const range = { since, until };
+  const range = {
+    since: since || 0,
+    until: until || Math.floor(Date.now() / 1000),
+  };
   const overall = await client.getReportSummary({ ...range, type: 'account' });
 
   let labels = [];
