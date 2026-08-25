@@ -22,6 +22,7 @@ import { useRouter } from 'vue-router';
 import { useAvailability } from 'widget/composables/useAvailability';
 import { SDK_SET_BUBBLE_VISIBILITY } from '../shared/constants/sharedFrameEvents';
 import { emitter } from 'shared/helpers/mitt';
+import { CONVERSATION_STATUS } from 'shared/constants/messages';
 
 export default {
   name: 'App',
@@ -45,6 +46,7 @@ export default {
   computed: {
     ...mapGetters({
       activeCampaign: 'campaign/getActiveCampaign',
+      conversationAttributes: 'conversationAttributes/getConversationParams',
       conversationSize: 'conversation/getConversationSize',
       hideMessageBubble: 'appConfig/getHideMessageBubble',
       isFetchingList: 'conversation/getIsFetchingList',
@@ -331,10 +333,19 @@ export default {
         } else if (message.event === 'toggle-open') {
           this.$store.dispatch('appConfig/toggleWidgetOpen', message.isOpen);
 
+          // Продолжаем молча открывать переписку в обход главного экрана
+          // только пока диалог реально ЖИВОЙ (open/pending) — иначе клиент
+          // со старым resolved-тикетом при каждом открытии виджета попадал
+          // бы обратно в архивную переписку вместо выбора "Мои заявки" /
+          // "Начать новую заявку". Для активного диалога это поведение,
+          // наоборот, нужно сохранить: иначе обновление страницы/повторное
+          // открытие виджета посреди текущего разговора сбрасывало бы его
+          // на главный экран, что тоже неудобно.
           const shouldShowMessageView =
             ['home'].includes(this.$route.name) &&
             message.isOpen &&
-            this.messageCount;
+            this.messageCount &&
+            this.conversationAttributes.status !== CONVERSATION_STATUS.RESOLVED;
           const shouldShowHomeView =
             !message.isOpen &&
             ['unread-messages', 'campaigns'].includes(this.$route.name);
