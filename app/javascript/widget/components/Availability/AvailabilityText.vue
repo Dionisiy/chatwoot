@@ -138,7 +138,7 @@ const formattedOpeningTime = computed(() => {
 
     <!-- Tomorrow -->
     <template v-else-if="nextSlot.daysUntilOpen === 1">
-      {{ t('REPLY_TIME.BACK_TOMORROW') }}
+      {{ t('REPLY_TIME.BACK_TOMORROW', { time: formattedOpeningTime }) }}
     </template>
 
     <!-- Multiple days away (eg: on Monday) -->
@@ -146,6 +146,7 @@ const formattedOpeningTime = computed(() => {
       {{
         t('REPLY_TIME.BACK_ON_DAY', {
           day: dayNames[nextSlot.config.dayOfWeek],
+          time: formattedOpeningTime,
         })
       }}
     </template>
