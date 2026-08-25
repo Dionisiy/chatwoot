@@ -55,6 +55,28 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       });
     },
 
+    // Вопрос с нативным date-picker на виджете — content_type: 'form' с
+    // единственным полем type: 'date'. ChatForm.vue (app/javascript/shared/
+    // components/ChatForm.vue) рендерит <input :type="item.type">
+    // генерически для 'text'/'date' — отдельного клиентского кейса под date
+    // заводить не пришлось, только расширили это условие. Ответ приходит НЕ
+    // как message_created с обычным текстом и НЕ как submitted_email
+    // (это только у input_email) — виджет патчит submitted_values:
+    // [{ name, value }] на этом же исходящем сообщении (см.
+    // AgentMessageBubble.vue#onFormSubmit), т.е. message_updated, как и у
+    // input_select. Отличаем от input_select в server.js по наличию ключа
+    // name (см. handleEvent) — маршрутизируется в engine.handleFormSubmitted.
+    async sendDateQuestion(conversationId, prompt, fieldName) {
+      return http.post(`/conversations/${conversationId}/messages`, {
+        content: prompt,
+        message_type: 'outgoing',
+        content_type: 'form',
+        content_attributes: {
+          items: [{ name: fieldName, type: 'date', label: prompt, required: true }],
+        },
+      });
+    },
+
     // Меню кнопок. items: [{ id, title, value }] — id используется только
     // внутри движка (engine.js) для сопоставления с выбором пользователя;
     // наружу в Chatwoot уходят только title/value — ContentAttributeValidator

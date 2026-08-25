@@ -85,6 +85,11 @@ async function renderNode(client, conversationId, nodeId, state) {
       // content_type: input_email — нативная валидация Chatwoot на виджете,
       // плюс движок ещё раз проверяет формат при получении ответа.
       await client.sendEmailQuestion(conversationId, node.prompt);
+    } else if (node.field.type === 'date') {
+      // Нативный date-picker (content_type: 'form') — ответ приходит через
+      // message_updated и обрабатывается handleFormSubmitted, не
+      // handleTextAnswer (см. chatwootClient.js#sendDateQuestion).
+      await client.sendDateQuestion(conversationId, node.prompt, node.field.name);
     } else {
       await client.sendText(conversationId, node.prompt);
     }
@@ -274,4 +279,30 @@ async function handleTextAnswer(client, conversationId, text) {
   return renderNode(client, conversationId, node.next, state);
 }
 
-module.exports = { startFlow, handleOptionSelected, handleTextAnswer };
+// Ответ на вопрос с содержимым content_type: 'form' (сейчас — только
+// date-picker, см. renderNode/sendDateQuestion). values — [{ name, value }],
+// как их шлёт AgentMessageBubble.vue#onFormSubmit; value от нативного
+// <input type="date"> — строка YYYY-MM-DD, доп. валидация формата не нужна.
+async function handleFormSubmitted(client, conversationId, values) {
+  const flows = getFlows();
+  const state = store.get(conversationId);
+  if (!state) return startFlow(client, conversationId);
+
+  const node = flows[state.nodeId];
+  if (!node || node.type !== 'question' || node.field.type !== 'date') {
+    // Не тот шаг, который мы ожидали (например, устаревшее сообщение) —
+    // просто повторно показываем текущий узел.
+    return renderNode(client, conversationId, state.nodeId, state);
+  }
+
+  const value = values.find(v => v.name === node.field.name)?.value;
+  if (!value) {
+    return renderNode(client, conversationId, state.nodeId, state);
+  }
+
+  state.formData[node.field.name] = value;
+  state.history.push(state.nodeId);
+  return renderNode(client, conversationId, node.next, state);
+}
+
+module.exports = { startFlow, handleOptionSelected, handleTextAnswer, handleFormSubmitted };

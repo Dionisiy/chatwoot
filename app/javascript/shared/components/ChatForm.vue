@@ -100,7 +100,7 @@ export default {
           :disabled="!!submittedValues.length"
         />
         <input
-          v-else-if="item.type === 'text'"
+          v-else-if="item.type === 'text' || item.type === 'date'"
           v-model="formValues[item.name]"
           :required="item.required && 'required'"
           :pattern="item.pattern"

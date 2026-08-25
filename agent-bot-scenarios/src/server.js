@@ -252,6 +252,14 @@ async function handleEvent(payload) {
     }
     const submittedValues = attrs.submitted_values;
     if (!submittedValues?.length) return; // просто правка сообщения, не наш кейс
+    // 'form' (например, date-picker) шлёт submitted_values как [{ name, value }]
+    // — по одному элементу на именованное поле формы (см. AgentMessageBubble.vue
+    // #onFormSubmit). 'input_select' шлёт выбранный option как {title, value}
+    // без ключа name (см. chatwootClient.js#sendMenu — id намеренно не уходит
+    // наружу). Наличие name — надёжный признак именно form-ответа.
+    if (submittedValues[0]?.name) {
+      return engine.handleFormSubmitted(client, conversationId, submittedValues);
+    }
     const selected = submittedValues[0]?.value ?? submittedValues[0]?.id;
     return engine.handleOptionSelected(client, conversationId, selected);
   }
@@ -264,7 +272,11 @@ async function handleEvent(payload) {
     const submittedValues = payload.content_attributes?.submitted_values;
     if (submittedValues?.length) {
       // На всякий случай, если какой-то канал всё же шлёт submitted_values
-      // через message_created, а не message_updated.
+      // через message_created, а не message_updated. Та же развилка
+      // form/input_select, что и в ветке message_updated выше.
+      if (submittedValues[0]?.name) {
+        return engine.handleFormSubmitted(client, conversationId, submittedValues);
+      }
       const selected = submittedValues[0]?.value ?? submittedValues[0]?.id;
       return engine.handleOptionSelected(client, conversationId, selected);
     }

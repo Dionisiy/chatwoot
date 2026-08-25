@@ -85,6 +85,7 @@ const selectFieldOptionsText = computed({
           <option value="text">text</option>
           <option value="email">email</option>
           <option value="select">select</option>
+          <option value="date">date</option>
         </select>
 
         <template v-if="node.field.type === 'select'">

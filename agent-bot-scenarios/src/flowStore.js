@@ -30,7 +30,7 @@ function reloadFlows() {
 }
 
 const VALID_TYPES = ['menu', 'question', 'message', 'link', 'end', 'submit'];
-const VALID_FIELD_TYPES = ['text', 'email', 'select'];
+const VALID_FIELD_TYPES = ['text', 'email', 'select', 'date'];
 
 // Возвращает массив текстовых ошибок (пустой массив = дерево валидно).
 // Не бросает исключений сама — так проще показать все ошибки разом в UI,
