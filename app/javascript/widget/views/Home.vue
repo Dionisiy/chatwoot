@@ -5,6 +5,10 @@ import { useRouter } from 'vue-router';
 import configMixin from 'widget/mixins/configMixin';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
 import ArticleContainer from '../components/pageComponents/Home/Article/ArticleContainer.vue';
+import { IFrameHelper } from '../helpers/utils';
+import { CHATWOOT_ON_START_CONVERSATION } from '../constants/sdkEvents';
+import { clearActiveConversationId } from '../helpers/activeConversation';
+
 export default {
   name: 'Home',
   components: {
@@ -20,22 +24,27 @@ export default {
   computed: {
     ...mapGetters({
       availableAgents: 'agent/availableAgents',
-      conversationSize: 'conversation/getConversationSize',
-      unreadMessageCount: 'conversation/getUnreadMessageCount',
     }),
   },
   methods: {
-    startConversation() {
-      if (this.preChatFormEnabled && !this.conversationSize) {
-        return this.router.replace({ name: 'prechat-form' });
-      }
-      return this.router.replace({ name: 'messages' });
+    // Кнопка всегда ведёт на новое обращение (pre-chat форма/выбор
+    // категории), а не "тихо" продолжает последний открытый диалог —
+    // продолжить существующий тикет можно только явно, через "Мои заявки"
+    // (openTicketsList). Логика идентична "Начать новую заявку" в
+    // ChatFooter.vue: сбрасываем выбранный в "Мои заявки" тикет, иначе
+    // следующее сообщение уйдёт по инерции в старый conversation_id.
+    startNewConversation() {
+      clearActiveConversationId();
+      this.router.replace({ name: 'prechat-form' });
+      IFrameHelper.sendMessage({
+        event: 'onEvent',
+        eventIdentifier: CHATWOOT_ON_START_CONVERSATION,
+        data: { hasConversation: false },
+      });
     },
-    // Второй CTA главного экрана (наравне с "Начать/продолжить разговор" в
-    // TeamAvailability, который по сути и есть "подать заявку" — ведёт в
-    // prechat-форму/бота). Раньше история заявок была доступна только
-    // мелкой иконкой в шапке (HeaderActions#openTicketsList) — здесь та же
-    // навигация, но отдельной полноразмерной кнопкой на главном экране.
+    // Раньше история заявок была доступна только мелкой иконкой в шапке
+    // (HeaderActions#openTicketsList) — здесь та же навигация, но отдельной
+    // полноразмерной кнопкой на главном экране.
     openTicketsList() {
       this.router.push({ name: 'tickets' });
     },
@@ -45,21 +54,27 @@ export default {
 
 <template>
   <div class="z-50 flex flex-col justify-end flex-1 w-full p-4 gap-4">
-    <TeamAvailability
-      :available-agents="availableAgents"
-      :has-conversation="!!conversationSize"
-      :unread-count="unreadMessageCount"
-      @start-conversation="startConversation"
-    />
+    <TeamAvailability :available-agents="availableAgents" />
 
-    <button
-      type="button"
-      class="flex items-center justify-center w-full gap-2 py-3 text-sm font-medium rounded-xl outline outline-1 outline-n-container bg-n-background dark:bg-n-solid-2 text-n-slate-12"
-      @click="openTicketsList"
-    >
-      <FluentIcon icon="document" size="18" />
-      {{ $t('TICKETS_LIST.BUTTON_TITLE') }}
-    </button>
+    <div class="flex gap-2">
+      <button
+        type="button"
+        class="flex items-center justify-center flex-1 gap-2 py-3 text-sm font-medium rounded-xl outline outline-1 outline-n-container bg-n-background dark:bg-n-solid-2 text-n-slate-12"
+        @click="openTicketsList"
+      >
+        <FluentIcon icon="document" size="18" />
+        {{ $t('TICKETS_LIST.BUTTON_TITLE') }}
+      </button>
+
+      <button
+        type="button"
+        class="flex items-center justify-center flex-1 gap-2 py-3 text-sm font-medium rounded-xl outline outline-1 outline-n-container bg-n-background dark:bg-n-solid-2 text-n-slate-12"
+        @click="startNewConversation"
+      >
+        <FluentIcon icon="chat-outline" size="18" />
+        {{ $t('START_ANOTHER_CONVERSATION') }}
+      </button>
+    </div>
 
     <ArticleContainer />
   </div>

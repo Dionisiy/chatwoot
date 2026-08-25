@@ -63,8 +63,25 @@ class ActionCableConnector extends BaseActionCableConnector {
     // Событие приходит по общей pubsub-подписке контакта — по ВСЕМ его
     // тикетам, не только по активному (см. isMessageInActiveConversation).
     // Раньше "Мои заявки" из-за этого не обновлялся на новые сообщения в
-    // других тикетах, хотя звук уведомления уже играл (см. ниже).
+    // других тикетах.
     this.app.$store.dispatch('conversationsList/refreshIfLoaded');
+
+    // Звук и красная точка на иконке виджета — тоже раньше были заперты
+    // внутри "только активный диалог" ниже: если у клиента несколько
+    // открытых заявок и агент отвечает не в последнюю (не активную сейчас),
+    // клиент не получал вообще никакого сигнала — ни звука, ни точки на
+    // иконке. Эти два сигнала не привязаны к конкретному отрендеренному
+    // диалогу (в отличие от addOrUpdateMessage ниже, который реально
+    // дописывает сообщение в открытую сейчас переписку), поэтому их можно и
+    // нужно поднимать на любое сообщение от агента/бота, а не только на
+    // сообщение в активном диалоге.
+    if (data.sender_type === 'User') {
+      playNewMessageNotificationInWidget();
+      IFrameHelper.sendMessage({
+        event: 'handleNotificationDot',
+        unreadMessageCount: 1,
+      });
+    }
 
     if (isMessageInActiveConversation(this.app.$store.getters, data)) {
       return;
@@ -79,9 +96,6 @@ class ActionCableConnector extends BaseActionCableConnector {
       eventIdentifier: CHATWOOT_ON_MESSAGE,
       data,
     });
-    if (data.sender_type === 'User') {
-      playNewMessageNotificationInWidget();
-    }
   };
 
   onMessageUpdated = data => {

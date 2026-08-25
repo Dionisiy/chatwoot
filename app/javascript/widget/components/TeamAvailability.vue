@@ -1,28 +1,15 @@
 <script setup>
-import { IFrameHelper } from 'widget/helpers/utils';
-import { CHATWOOT_ON_START_CONVERSATION } from '../constants/sdkEvents';
 import AvailabilityContainer from 'widget/components/Availability/AvailabilityContainer.vue';
-import { useMapGetter } from 'dashboard/composables/store.js';
 
-const props = defineProps({
+// Раньше здесь была ещё и кнопка "Начать/продолжить беседу", которая при
+// наличии диалога вела прямо в него (в обход истории заявок). По просьбе
+// заказчика убрали — на главном экране виджета это теперь чисто статус
+// "онлайн/офлайн", а переход к диалогам сделан явными кнопками в Home.vue
+// ("Мои заявки" / "Начать новую заявку"), чтобы у клиента не было
+// неочевидного пути "тихо продолжить" старое обращение мимо истории.
+defineProps({
   availableAgents: { type: Array, default: () => [] },
-  hasConversation: { type: Boolean, default: false },
 });
-
-const emit = defineEmits(['startConversation']);
-
-const widgetColor = useMapGetter('appConfig/getWidgetColor');
-
-const startConversation = () => {
-  emit('startConversation');
-  if (!props.hasConversation) {
-    IFrameHelper.sendMessage({
-      event: 'onEvent',
-      eventIdentifier: CHATWOOT_ON_START_CONVERSATION,
-      data: { hasConversation: false },
-    });
-  }
-};
 </script>
 
 <template>
@@ -30,20 +17,5 @@ const startConversation = () => {
     class="flex flex-col gap-3 w-full shadow outline-1 outline outline-n-container rounded-xl bg-n-background dark:bg-n-solid-2 px-5 py-4"
   >
     <AvailabilityContainer :agents="availableAgents" show-header show-avatars />
-
-    <button
-      class="inline-flex items-center gap-1 font-medium text-n-slate-12"
-      :style="{ color: widgetColor }"
-      @click="startConversation"
-    >
-      <span>
-        {{
-          hasConversation
-            ? $t('CONTINUE_CONVERSATION')
-            : $t('START_CONVERSATION')
-        }}
-      </span>
-      <i class="i-lucide-chevron-right size-5 mt-px" />
-    </button>
   </div>
 </template>
