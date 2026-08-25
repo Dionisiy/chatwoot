@@ -707,6 +707,16 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.REPORTS_BOT'),
           to: accountScopedRoute('bot_reports'),
         },
+        {
+          // Кастомный дашборд SlideEdu (agent-bot-scenarios/web/dashboard) —
+          // отдельное Node-приложение вне Vue Router, отдаётся тем же nginx
+          // по относительному пути (location /agent-bot/), поэтому обычная
+          // ссылка, не accountScopedRoute.
+          name: 'Reports SlideEdu Dashboard',
+          label: t('SIDEBAR.REPORTS_SLIDEEDU_DASHBOARD'),
+          to: '/agent-bot/dashboard/',
+          external: true,
+        },
       ],
     },
     {

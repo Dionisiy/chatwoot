@@ -14,9 +14,20 @@ const props = defineProps({
   badgeCount: { type: [Number, String], default: 0 },
   hideTreeLine: { type: Boolean, default: false },
   thinTreeLine: { type: Boolean, default: false },
+  // Пункты вне Vue Router (например кастомный /agent-bot/dashboard/ —
+  // отдельное Node-приложение, а не SPA-роут) должны открываться обычной
+  // ссылкой, а не через router-link, иначе Vue Router просто не найдёт
+  // совпадающий маршрут и никуда не перейдёт.
+  external: { type: Boolean, default: false },
 });
 
 const { resolvePermissions, resolveFeatureFlag } = useSidebarContext();
+
+const linkAttrs = computed(() =>
+  props.external
+    ? { href: props.to, target: '_blank', rel: 'noopener noreferrer' }
+    : { to: props.to }
+);
 
 const shouldRenderComponent = computed(() => {
   return typeof props.component === 'function' || isVNode(props.component);
@@ -41,8 +52,8 @@ const TREE_CONNECTOR =
     }"
   >
     <component
-      :is="to ? 'router-link' : 'div'"
-      :to="to"
+      :is="external ? 'a' : to ? 'router-link' : 'div'"
+      v-bind="linkAttrs"
       :title="label"
       class="flex h-8 items-center gap-2 px-2 py-1 rounded-lg ltr:hover:bg-gradient-to-r rtl:hover:bg-gradient-to-l from-transparent via-n-slate-3/70 to-n-slate-3/70 group min-w-0"
       :class="{
