@@ -47,7 +47,12 @@ function refresh() {
 
 <template>
   <div class="page">
-    <h1>Статистика заявок SlideEdu</h1>
+    <div class="page-head">
+      <h1>Статистика заявок SlideEdu</h1>
+      <p class="muted">
+        Обращения бота по категориям, клиентам и времени ответа
+      </p>
+    </div>
 
     <PeriodPicker @change="onRangeChange" />
 
@@ -58,51 +63,53 @@ function refresh() {
 
     <template v-else-if="data">
       <div class="meta">
-        Сформировано: {{ data.generatedAt }} · Обращений за выбранный период: {{ data.totalConversations }}
+        <span>Сформировано: {{ data.generatedAt }}</span>
+        <span
+          >· Обращений за выбранный период: {{ data.totalConversations }}</span
+        >
         <span v-if="data.truncated" class="warn">
-          — выборка ограничена (очень много диалогов), см. MAX_PAGES в src/dashboard.js
+          — выборка ограничена (очень много диалогов), см. MAX_PAGES в
+          src/dashboard.js
         </span>
-        · <button class="refresh" type="button" @click="refresh">обновить</button>
+        <button class="btn btn-ghost" type="button" @click="refresh">
+          обновить
+        </button>
       </div>
 
-      <section>
+      <section class="card elev-sm">
         <h2>Обращения по категориям и сабкатегориям</h2>
         <CategoryBreakdown :categories="data.categories" />
       </section>
 
-      <section>
+      <section class="card elev-sm">
         <h2>Клиент × категория</h2>
-        <ClientsTable :clients="data.clients" :category-names="data.categoryNames" />
+        <ClientsTable
+          :clients="data.clients"
+          :category-names="data.categoryNames"
+        />
       </section>
 
-      <section>
+      <section class="card elev-sm">
         <h2>Среднее время ответа и решения</h2>
         <ResponseTimes :response-times="data.responseTimes" />
       </section>
 
-      <section>
+      <section class="card elev-sm">
         <h2>Тренд заявок по неделям (по категориям)</h2>
-        <WeeklyTrend :weekly-trend="data.weeklyTrend" :category-names="data.categoryNames" />
+        <WeeklyTrend
+          :weekly-trend="data.weeklyTrend"
+          :category-names="data.categoryNames"
+        />
       </section>
     </template>
   </div>
 </template>
 
-<style>
-.page { padding: 24px 32px; }
-h1 { font-size: 20px; margin: 0 0 4px; }
-h2 { font-size: 15px; margin: 32px 0 12px; color: #334155; }
-.meta { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
-.warn { color: #b45309; font-size: 12px; }
-.error { color: #dc2626; font-size: 13px; }
-section { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
-button.refresh {
-  font-size: 12px;
-  color: var(--accent);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
+<style scoped>
+.meta {
+  margin-bottom: var(--space-6);
+}
+.meta .btn {
+  margin-left: auto;
 }
 </style>

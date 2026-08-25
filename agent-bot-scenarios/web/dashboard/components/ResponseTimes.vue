@@ -8,19 +8,31 @@ defineProps({
 
 <template>
   <p class="muted">
-    За период {{ formatDate(responseTimes.range.since) }} — {{ formatDate(responseTimes.range.until) }}
+    За период {{ formatDate(responseTimes.range.since) }} —
+    {{ formatDate(responseTimes.range.until) }}
     (данные — родные отчёты Chatwoot, с учётом рабочих часов).
   </p>
-  <table>
+  <table class="table">
     <thead>
-      <tr><th>Категория</th><th>Диалогов</th><th>Ср. время ответа</th><th>Ср. время решения</th></tr>
+      <tr>
+        <th>Категория</th>
+        <th class="num">Диалогов</th>
+        <th class="num">Ср. время ответа</th>
+        <th class="num">Ср. время решения</th>
+      </tr>
     </thead>
     <tbody>
       <tr class="total-row">
         <td>Всего по аккаунту</td>
-        <td class="num">{{ responseTimes.overall.conversations_count ?? '—' }}</td>
-        <td class="num">{{ formatDuration(responseTimes.overall.avg_first_response_time) }}</td>
-        <td class="num">{{ formatDuration(responseTimes.overall.avg_resolution_time) }}</td>
+        <td class="num">
+          {{ responseTimes.overall.conversations_count ?? '—' }}
+        </td>
+        <td class="num">
+          {{ formatDuration(responseTimes.overall.avg_first_response_time) }}
+        </td>
+        <td class="num">
+          {{ formatDuration(responseTimes.overall.avg_resolution_time) }}
+        </td>
       </tr>
       <tr v-if="!responseTimes.perCategory.length">
         <td colspan="4" class="muted">Нет диалогов с категориями за период</td>
@@ -36,5 +48,8 @@ defineProps({
 </template>
 
 <style scoped>
-.total-row { font-weight: 600; background: var(--bg); }
+.total-row td {
+  font-weight: 600;
+  color: var(--color-accent-300);
+}
 </style>

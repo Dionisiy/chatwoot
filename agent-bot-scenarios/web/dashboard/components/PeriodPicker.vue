@@ -27,7 +27,10 @@ function toUnix(dateStr, endOfDay) {
 const range = computed(() => {
   if (preset.value === 'all') return { since: undefined, until: undefined };
   if (preset.value === 'custom') {
-    return { since: toUnix(customSince.value, false), until: toUnix(customUntil.value, true) };
+    return {
+      since: toUnix(customSince.value, false),
+      until: toUnix(customUntil.value, true),
+    };
   }
   const found = PRESETS.find(p => p.id === preset.value);
   const now = Math.floor(Date.now() / 1000);
@@ -39,36 +42,61 @@ watch(range, r => emit('change', r), { immediate: true });
 
 <template>
   <div class="period-picker">
-    <button
-      v-for="p in PRESETS"
-      :key="p.id"
-      type="button"
-      class="chip"
-      :class="{ active: preset === p.id }"
-      @click="preset = p.id"
-    >
-      {{ p.label }}
-    </button>
+    <div class="seg" role="radiogroup" aria-label="Период">
+      <label v-for="p in PRESETS" :key="p.id" class="seg-opt">
+        <input
+          v-model="preset"
+          type="radio"
+          name="period-preset"
+          :value="p.id"
+        />
+        {{ p.label }}
+      </label>
+    </div>
 
-    <template v-if="preset === 'custom'">
-      <label>с <input v-model="customSince" type="date" /></label>
-      <label>по <input v-model="customUntil" type="date" /></label>
-    </template>
+    <div v-if="preset === 'custom'" class="custom-range">
+      <svg
+        class="icon"
+        width="14"
+        height="14"
+        viewBox="0 0 256 256"
+        fill="currentColor"
+      >
+        <path
+          d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"
+        />
+      </svg>
+      <label class="field-inline">с <input v-model="customSince" type="date" class="input" /></label>
+      <label class="field-inline">по <input v-model="customUntil" type="date" class="input" /></label>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.period-picker { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-.chip {
-  font-size: 12px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: #fff;
-  cursor: pointer;
-  color: var(--muted);
+.period-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
 }
-.chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
-label { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
-input[type='date'] { font-size: 12px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; }
+.custom-range {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-accent);
+}
+.field-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.field-inline .input {
+  width: auto;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
 </style>

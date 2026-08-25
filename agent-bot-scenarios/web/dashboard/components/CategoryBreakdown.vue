@@ -6,11 +6,11 @@ defineProps({
 </script>
 
 <template>
-  <table>
+  <table class="table">
     <thead>
       <tr>
         <th>Категория / Сабкатегория</th>
-        <th>Обращений</th>
+        <th class="num">Обращений</th>
       </tr>
     </thead>
     <tbody>
@@ -20,11 +20,15 @@ defineProps({
       <template v-for="cat in categories" :key="cat.name">
         <tr class="category-row">
           <td>{{ cat.name }}</td>
-          <td class="num">{{ cat.total }}</td>
+          <td class="num">
+            <span class="tag tag-accent">{{ cat.total }}</span>
+          </td>
         </tr>
         <tr v-for="[sub, count] in cat.subcategories" :key="sub">
           <td class="sub-name">{{ sub }}</td>
-          <td class="num">{{ count }}</td>
+          <td class="num">
+            <span class="tag tag-neutral">{{ count }}</span>
+          </td>
         </tr>
       </template>
     </tbody>
@@ -32,6 +36,12 @@ defineProps({
 </template>
 
 <style scoped>
-.category-row { background: var(--bg); font-weight: 600; }
-.sub-name { padding-left: 28px; color: var(--muted); font-weight: 400; }
+.category-row td {
+  font-weight: 600;
+}
+.sub-name {
+  padding-left: calc(var(--space-4) * 2);
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  font-weight: 400;
+}
 </style>
