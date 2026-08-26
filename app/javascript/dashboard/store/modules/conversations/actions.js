@@ -402,18 +402,57 @@ const actions = {
 
   addMentions({ dispatch, rootState }, conversation) {
     if (isOnMentionsView(rootState)) {
-      dispatch('updateConversation', conversation);
+      dispatch('updateConversation', { conversation, bypassInsertGuard: true });
     }
   },
 
   addUnattended({ dispatch, rootState }, conversation) {
     if (isOnUnattendedView(rootState)) {
-      dispatch('updateConversation', conversation);
+      dispatch('updateConversation', { conversation, bypassInsertGuard: true });
     }
   },
 
-  updateConversation({ commit, dispatch, rootGetters }, conversation) {
+  // Принимает либо диалог напрямую (большинство вызовов из actionCable.js —
+  // assignee.changed/conversation.read/status_changed/updated), либо
+  // { conversation, bypassInsertGuard } из addMentions/addUnattended, где
+  // вставка в список сделана намеренно и уже проверена по своему view.
+  updateConversation(
+    { commit, dispatch, rootGetters, state, rootState },
+    payload
+  ) {
+    const { conversation, bypassInsertGuard } = payload?.conversation
+      ? payload
+      : { conversation: payload, bypassInsertGuard: false };
     const sender = conversation.meta?.sender;
+    const conversationExists = state.allConversations.some(
+      c => c.id === conversation.id
+    );
+
+    // Диалог ещё не в локальном списке. Раньше в этом случае мутация всё
+    // равно безусловно добавляла его — в обход тех же ограничений, что
+    // addConversation применяет к событию создания (activeFilters/Folder-
+    // /Participating-вид/несовпадающий инбокс). Из-за этой асимметрии диалог,
+    // пропущенный addConversation при создании (например, под активным
+    // фильтром), мог "внезапно" появиться по любому более позднему событию —
+    // вплоть до того, что контакт просто открыл существующий тикет
+    // (update_last_seen → conversation.updated), без единого сообщения.
+    // Применяем тот же guard и здесь, чтобы поведение было одинаковым в обе
+    // стороны: под фильтром/во Folder-виде список не пополняется "магически"
+    // ни созданием, ни обновлением — только явной перезагрузкой.
+    if (!conversationExists && !bypassInsertGuard) {
+      const { currentInbox, appliedFilters } = state;
+      const hasAppliedFilters = !!appliedFilters.length;
+      const isMatchingInboxFilter =
+        !currentInbox || Number(currentInbox) === conversation.inbox_id;
+      if (
+        hasAppliedFilters ||
+        isOnFoldersView(rootState) ||
+        isOnParticipatingView(rootState) ||
+        !isMatchingInboxFilter
+      ) {
+        return;
+      }
+    }
 
     commit(types.UPDATE_CONVERSATION, conversation);
     syncConversationCallVisibility(conversation, rootGetters?.getCurrentUserID);
