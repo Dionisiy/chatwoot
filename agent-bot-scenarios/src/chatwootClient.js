@@ -213,6 +213,19 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       return data.custom_attributes?.type || null;
     },
 
+    // Custom attributes КОНТАКТА (не диалога) — например project/languages,
+    // которые Laravel-бэкенд SlideEdu пишет через widget SDK
+    // (window.$chatwoot.setUser + setCustomAttributes) при логине уже
+    // существующего в SlideEdu пользователя. Тот же эндпоинт, что и у
+    // getConversationCategory, но контакт лежит в meta.sender —
+    // custom_attributes ДИАЛОГА (выше) и custom_attributes КОНТАКТА
+    // (meta.sender) это два разных поля одного ответа, см.
+    // _conversation.json.jbuilder / _contact.json.jbuilder.
+    async getContactCustomAttributes(conversationId) {
+      const { data } = await http.get(`/conversations/${conversationId}`);
+      return data.meta?.sender?.custom_attributes || {};
+    },
+
     // Агрегированная статистика ответов/решений — используем родные отчёты
     // Chatwoot (app/builders/v2/reports/conversations/metric_builder.rb),
     // а не считаем среднее время вручную: там учтены рабочие часы,

@@ -62,6 +62,19 @@ async function renderNode(client, conversationId, nodeId, state) {
 
   if (node.type === 'question') {
     if (node.field.type === 'select') {
+      // Если имя поля совпадает с ключом custom-атрибута контакта (например
+      // "project" — его пишет Laravel-бэкенд SlideEdu через widget SDK при
+      // логине уже существующего пользователя, см. startFlow) и его значение
+      // входит в options — не спрашиваем то, что уже знаем из SlideEdu,
+      // сразу идём дальше. Цель интеграции ровно в этом: меньше ручного
+      // выбора — меньше ошибок (например, неверно выбранный проект).
+      const knownValue = state.contactAttributes?.[node.field.name];
+      if (knownValue && node.field.options.includes(knownValue)) {
+        state.formData[node.field.name] = knownValue;
+        state.history.push(resolvedId);
+        await renderNode(client, conversationId, node.next, state);
+        return;
+      }
       // Freshchat рендерит такие поля (валюта и т.п.) как quick-reply меню,
       // не как свободный ввод текста.
       await client.sendMenu(
@@ -182,6 +195,18 @@ async function startFlow(client, conversationId) {
     console.error('[engine] getConversationCategory failed:', err.message);
   }
 
+  // Custom-атрибуты контакта (project/languages из SlideEdu, см.
+  // chatwootClient.js#getContactCustomAttributes) — забираем один раз в
+  // начале диалога и кладём в state, чтобы renderNode мог автоматически
+  // пропускать select-вопросы с уже известным ответом (например
+  // calendar_project), не дёргая API заново на каждом шаге.
+  let contactAttributes = {};
+  try {
+    contactAttributes = await client.getContactCustomAttributes(conversationId);
+  } catch (err) {
+    console.error('[engine] getContactCustomAttributes failed:', err.message);
+  }
+
   // Категория не задана — старое поведение по умолчанию (main_menu).
   // Категория задана, но для неё нет ветки в CATEGORY_ENTRY_NODE — молчим,
   // ответ автоматизации Chatwoot остаётся единственным в диалоге.
@@ -189,6 +214,7 @@ async function startFlow(client, conversationId) {
   if (!entryNode) return;
 
   const state = freshState();
+  state.contactAttributes = contactAttributes;
   await renderNode(client, conversationId, entryNode, state);
 }
 
