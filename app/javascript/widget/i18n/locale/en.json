@@ -107,7 +107,9 @@
     "CAMPAIGN_HEADER": "Please provide your name and email before starting the conversation",
     "IS_REQUIRED": "is required",
     "REQUIRED": "Required",
-    "REGEX_ERROR": "Please provide a valid input"
+    "REGEX_ERROR": "Please provide a valid input",
+    "AUTO_MESSAGE_WITH_CATEGORY": "New request: {category}",
+    "AUTO_MESSAGE": "New request"
   },
   "FILE_SIZE_LIMIT": "File exceeds the {MAXIMUM_FILE_UPLOAD_SIZE} attachment limit",
   "CHAT_FORM": {

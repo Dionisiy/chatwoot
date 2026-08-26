@@ -138,6 +138,17 @@ export default {
       });
       return contactAttributes;
     },
+    // Свободного поля "Сообщение" в форме больше нет — реальную суть
+    // обращения бот и так узнаёт дальше по сценарию (см. engine.js). Но
+    // Chatwoot создаёт диалог вместе с его первым сообщением, поэтому текст
+    // всё равно нужен — генерируем его сами, по выбранной категории (поле
+    // "type", см. conversationCustomAttributes) вместо ручного ввода.
+    defaultMessage() {
+      const category = this.conversationCustomAttributes.type;
+      return category
+        ? this.$t('PRE_CHAT_FORM.AUTO_MESSAGE_WITH_CATEGORY', { category })
+        : this.$t('PRE_CHAT_FORM.AUTO_MESSAGE');
+    },
   },
   methods: {
     inputClass(input) {
@@ -234,12 +245,12 @@ export default {
       return {};
     },
     onSubmit() {
-      const { emailAddress, fullName, phoneNumber, message } = this.formValues;
+      const { emailAddress, fullName, phoneNumber } = this.formValues;
       this.$emit('submitPreChat', {
         fullName,
         phoneNumber,
         emailAddress,
-        message,
+        message: this.defaultMessage,
         activeCampaignId: this.activeCampaign.id,
         conversationCustomAttributes: this.conversationCustomAttributes,
         contactCustomAttributes: this.contactCustomAttributes,
@@ -301,20 +312,6 @@ export default {
       }"
       :has-error-in-phone-input="hasErrorInPhoneInput"
     />
-    <FormKit
-      v-if="!hasActiveCampaign"
-      name="message"
-      type="textarea"
-      label-class="text-sm font-medium text-n-slate-12"
-      :input-class="context => inputClass(context)"
-      :label="$t('PRE_CHAT_FORM.FIELDS.MESSAGE.LABEL')"
-      :placeholder="$t('PRE_CHAT_FORM.FIELDS.MESSAGE.PLACEHOLDER')"
-      validation="required"
-      :validation-messages="{
-        required: $t('PRE_CHAT_FORM.FIELDS.MESSAGE.ERROR'),
-      }"
-    />
-
     <CustomButton
       class="mt-3 mb-5 font-medium flex items-center justify-center gap-2"
       block
