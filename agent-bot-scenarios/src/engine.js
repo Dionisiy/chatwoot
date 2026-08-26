@@ -283,7 +283,28 @@ async function handleTextAnswer(client, conversationId, text) {
   }
 
   const node = flows[state.nodeId];
-  if (!node || node.type !== 'question' || node.field.type === 'select') {
+
+  // Ответ на select-вопрос напечатан текстом, а не кликом по кнопке
+  // (handleOptionSelected) — типично, когда клиент не глядя вводит ответ в
+  // поле ввода вместо кнопки. Раньше это всегда считалось невалидным и
+  // вопрос переспрашивался бесконечно, даже если текст слово в слово
+  // совпадал с одним из option. Сравниваем без учёта регистра/крайних
+  // пробелов и, если совпало, засчитываем как обычный выбор.
+  if (node?.type === 'question' && node.field.type === 'select') {
+    const matched = node.field.options.find(
+      o => o.trim().toLowerCase() === trimmed
+    );
+    if (matched) {
+      state.formData[node.field.name] = matched;
+      state.history.push(state.nodeId);
+      return renderNode(client, conversationId, node.next, state);
+    }
+    // Не совпало ни с одним вариантом — переспрашиваем тем же вопросом,
+    // кнопки уже были отправлены раньше и повторно не дублируются.
+    return renderNode(client, conversationId, state.nodeId, state);
+  }
+
+  if (!node || node.type !== 'question') {
     // Мы сейчас не на текстовом шаге (например, ждём нажатия кнопки/выбора
     // из quick-reply меню) — просто повторно показываем текущий узел.
     return renderNode(client, conversationId, state.nodeId, state);
