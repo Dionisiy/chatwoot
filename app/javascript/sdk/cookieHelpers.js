@@ -15,7 +15,17 @@ export const getUserString = ({ identifier = '', user }) => {
     (acc, key) => `${acc}${key}${user[key] || ''}`,
     ''
   );
-  return `${userStringWithSortedKeys}identifier${identifier}`;
+  // custom_attributes не входит в ALLOWED_USER_ATTRIBUTES и раньше вообще не
+  // участвовал в хэше. Из-за этого повторный setUser() с тем же
+  // identifier/email/name, но с изменившимися custom_attributes, давал
+  // идентичный хэш cookie (см. entrypoints/sdk.js#setUser) и тихо
+  // игнорировался целиком — Chatwoot не получал ни новые атрибуты, ни даже
+  // повторные email/name. Добавляем custom_attributes в хэш, чтобы их
+  // изменение само по себе считалось "новыми данными" и слало set-user.
+  const customAttributesString = user.custom_attributes
+    ? JSON.stringify(user.custom_attributes)
+    : '';
+  return `${userStringWithSortedKeys}customAttributes${customAttributesString}identifier${identifier}`;
 };
 
 export const computeHashForUserData = (...args) => md5(getUserString(...args));
