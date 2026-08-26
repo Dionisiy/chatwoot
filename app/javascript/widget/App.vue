@@ -104,6 +104,7 @@ export default {
       this.fetchOldConversations();
       this.fetchAvailableAgents(websiteToken);
       this.setLocale(getLocale(window.location.search));
+      this.$store.dispatch('conversationsList/fetch');
     }
     if (this.isRNWebView) {
       this.registerListeners();
@@ -283,6 +284,11 @@ export default {
           this.fetchAvailableAgents(websiteToken);
           this.setAppConfig(message);
           this.$store.dispatch('contacts/get');
+          // Чтобы бейдж непрочитанных на кнопке "Мои заявки" (см. Home.vue)
+          // был верным сразу, не дожидаясь, пока клиент сам откроет этот
+          // экран хотя бы раз в этой сессии (см. conversationsList.js —
+          // иначе refreshIfLoaded по WS-событиям ничего не обновлял бы).
+          this.$store.dispatch('conversationsList/fetch');
           this.setCampaignReadData(message.campaignsSnoozedTill);
         } else if (message.event === 'widget-visible') {
           this.scrollConversationToBottom();

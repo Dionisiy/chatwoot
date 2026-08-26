@@ -6,6 +6,17 @@ import { shouldTriggerMessageUpdateEvent } from './IframeEventHelper';
 import { CHATWOOT_ON_MESSAGE } from '../constants/sdkEvents';
 import { emitter } from '../../shared/helpers/mitt';
 
+// Живой агент отвечает как sender_type: 'User', но подавляющее большинство
+// реплик в этом проекте (меню, вопросы, подтверждение заявки) отправляет
+// наш бот (agent-bot-scenarios), который аутентифицируется отдельным
+// AgentBot-токеном (см. chatwootClient.js) — такие сообщения приходят с
+// sender_type: 'AgentBot', а не 'User'. Captain::Assistant — тот же случай
+// "не живой агент, но исходящий ответ", см. Message#bot_message? в Rails.
+// Раньше проверка ниже пропускала только 'User', из-за чего звук и точка на
+// иконке НЕ срабатывали почти на весь реальный диалог с ботом — только на
+// сообщения от живого агента.
+const NOTIFIABLE_SENDER_TYPES = ['User', 'AgentBot', 'Captain::Assistant'];
+
 const isMessageInActiveConversation = (getters, message) => {
   const { conversation_id: conversationId } = message;
   const activeConversationId =
@@ -75,7 +86,7 @@ class ActionCableConnector extends BaseActionCableConnector {
     // дописывает сообщение в открытую сейчас переписку), поэтому их можно и
     // нужно поднимать на любое сообщение от агента/бота, а не только на
     // сообщение в активном диалоге.
-    if (data.sender_type === 'User') {
+    if (NOTIFIABLE_SENDER_TYPES.includes(data.sender_type)) {
       playNewMessageNotificationInWidget();
       IFrameHelper.sendMessage({
         event: 'handleNotificationDot',

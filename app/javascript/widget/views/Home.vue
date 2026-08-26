@@ -24,7 +24,15 @@ export default {
   computed: {
     ...mapGetters({
       availableAgents: 'agent/availableAgents',
+      totalUnreadCount: 'conversationsList/getTotalUnreadCount',
     }),
+    // '9+', как и per-ticket бейдж в TicketsList.vue — переиспользуем тот же
+    // i18n-ключ, чтобы формат совпадал.
+    unreadBadgeLabel() {
+      return this.totalUnreadCount > 9
+        ? this.$t('TICKETS_LIST.UNREAD_MAX')
+        : String(this.totalUnreadCount);
+    },
   },
   methods: {
     // Кнопка всегда ведёт на новое обращение (pre-chat форма/выбор
@@ -59,11 +67,22 @@ export default {
     <div class="flex gap-2">
       <button
         type="button"
-        class="flex items-center justify-center flex-1 gap-2 py-3 text-sm font-medium rounded-xl outline outline-1 outline-n-container bg-n-background dark:bg-n-solid-2 text-n-slate-12"
+        class="flex items-center justify-center flex-1 gap-2 py-3 text-sm font-medium rounded-xl outline outline-1 bg-n-background dark:bg-n-solid-2 text-n-slate-12"
+        :class="
+          totalUnreadCount > 0
+            ? 'outline-n-ruby-9 animate-pulse'
+            : 'outline-n-container'
+        "
         @click="openTicketsList"
       >
         <FluentIcon icon="document" size="18" />
         {{ $t('TICKETS_LIST.BUTTON_TITLE') }}
+        <span
+          v-if="totalUnreadCount > 0"
+          class="flex items-center justify-center h-[18px] min-w-[18px] px-1 text-[10px] font-semibold text-white rounded-full bg-n-ruby-9"
+        >
+          {{ unreadBadgeLabel }}
+        </span>
       </button>
 
       <button

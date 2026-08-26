@@ -15,6 +15,15 @@ const state = {
 export const getters = {
   getTickets: $state => $state.records,
   getUIFlags: $state => $state.uiFlags,
+  // Суммарные непрочитанные по ВСЕМ тикетам контакта — для бейджа на кнопке
+  // "Мои заявки" на главном экране виджета (см. views/Home.vue). unread_count
+  // на каждый тикет уже считает бэкенд (см. list.json.jbuilder), здесь просто
+  // суммируем.
+  getTotalUnreadCount: $state =>
+    $state.records.reduce(
+      (total, ticket) => total + (ticket.unread_count || 0),
+      0
+    ),
 };
 
 export const actions = {
