@@ -107,11 +107,24 @@ async function renderNode(client, conversationId, nodeId, state) {
       // клиента" — см. applyStudentSelection.
       const students = state.contactAttributes?.students;
       if (Array.isArray(students) && students.length) {
+        // value ДОЛЖЕН быть id, а не имя: sendMenu отправляет в Chatwoot
+        // только title/value (ContentAttributeValidator режет id — см.
+        // chatwootClient.js#sendMenu), и именно value возвращается назад в
+        // handleOptionSelected при клике (submitted_values[0].value). Раньше
+        // тут стояло value: s.name — из-за этого сравнение по id в
+        // handleOptionSelected никогда не совпадало, и клик по ученику
+        // просто переспрашивал тот же вопрос заново (поймано живой проверкой
+        // через реальный вебхук, не мок-тестами — они вызывали
+        // handleOptionSelected напрямую с готовым id, минуя этот баг).
         await client.sendMenu(
           conversationId,
           node.prompt,
           withOptionalSkip(
-            students.map(s => ({ id: String(s.id), title: s.name, value: s.name })),
+            students.map(s => ({
+              id: String(s.id),
+              title: s.name,
+              value: String(s.id),
+            })),
             node
           )
         );
@@ -144,7 +157,11 @@ async function renderNode(client, conversationId, nodeId, state) {
       // Нативный date-picker (content_type: 'form') — ответ приходит через
       // message_updated и обрабатывается handleFormSubmitted, не
       // handleTextAnswer (см. chatwootClient.js#sendDateQuestion).
-      await client.sendDateQuestion(conversationId, node.prompt, node.field.name);
+      await client.sendDateQuestion(
+        conversationId,
+        node.prompt,
+        node.field.name
+      );
     } else {
       await client.sendText(conversationId, node.prompt);
     }
@@ -163,7 +180,9 @@ async function renderNode(client, conversationId, nodeId, state) {
   if (node.type === 'link') {
     // Информационный терминальный узел (например, ссылка на календарь) —
     // без создания заявки, только текст + опциональная ссылка + навигация.
-    const text = node.url ? `${node.text}\n${node.linkTitle}: ${node.url}` : node.text;
+    const text = node.url
+      ? `${node.text}\n${node.linkTitle}: ${node.url}`
+      : node.text;
     await client.sendMenu(conversationId, text, [
       { id: MENU_ID, title: '🏠 Главное меню', value: MENU_ID },
       { id: BACK_ID, title: '« Назад', value: BACK_ID },
@@ -187,7 +206,10 @@ async function renderNode(client, conversationId, nodeId, state) {
     // submit-узлам одним местом в коде, а не руками в каждой ветке /admin —
     // независимо от будущих правок текста в редакторе номер заявки не
     // потеряется.
-    await client.sendText(conversationId, `${node.message}\nНомер заявки: ${conversationId}`);
+    await client.sendText(
+      conversationId,
+      `${node.message}\nНомер заявки: ${conversationId}`
+    );
     // group (команда) и label (метка/подкатегория) независимы друг от друга —
     // например, у веток финансов одновременно есть и распределение по
     // команде, и метка подкатегории для фильтрации в списке меток.
@@ -293,6 +315,25 @@ async function applyStudentSelection(
 ) {
   state.formData[currentNode.field.name] = student.name;
   state.history.push(state.nodeId);
+
+  // Пишем ID ученика в custom_attributes ДИАЛОГА сразу в момент выбора, а не
+  // только в state.formData: следующий узел (calendar_id и т.п.) теперь
+  // пропускается целиком (см. ниже), значит ID больше нигде не появляется в
+  // виде обычного сообщения в переписке — а среди учеников одного учителя
+  // возможны полные тёзки по ФИО, так что именно ID (а не имя из транскрипта)
+  // должен быть тем, на что смотрит агент, чтобы не перепутать клиента.
+  try {
+    await client.setConversationCustomAttributes(conversationId, {
+      slideedu_client_id: student.id,
+      slideedu_client_name: student.name,
+    });
+  } catch (err) {
+    console.error(
+      '[engine] setConversationCustomAttributes failed:',
+      err.message
+    );
+  }
+
   const idNode = flows[currentNode.next];
   if (idNode?.type === 'question' && idNode.field?.name === 'client_id') {
     state.formData[idNode.field.name] = String(student.id);
@@ -320,20 +361,34 @@ async function handleOptionSelected(client, conversationId, selectedId) {
 
   // Клик "Пропустить" на необязательном вопросе (см. renderNode) —
   // сохраняем пустое значение и идём дальше, как будто ответили.
-  if (selectedId === SKIP_ID && currentNode?.type === 'question' && currentNode.optional) {
+  if (
+    selectedId === SKIP_ID &&
+    currentNode?.type === 'question' &&
+    currentNode.optional
+  ) {
     state.formData[currentNode.field.name] = null;
     state.history.push(state.nodeId);
     return renderNode(client, conversationId, currentNode.next, state);
   }
 
   // Выбор ученика из динамического списка (см. renderNode/applyStudentSelection).
-  if (currentNode?.type === 'question' && currentNode.field.type === 'student_select') {
+  if (
+    currentNode?.type === 'question' &&
+    currentNode.field.type === 'student_select'
+  ) {
     const students = state.contactAttributes?.students || [];
     const student = students.find(s => String(s.id) === selectedId);
     if (!student) {
       return renderNode(client, conversationId, state.nodeId, state);
     }
-    return applyStudentSelection(client, conversationId, flows, state, currentNode, student);
+    return applyStudentSelection(
+      client,
+      conversationId,
+      flows,
+      state,
+      currentNode,
+      student
+    );
   }
 
   // Ответ на question с полем-выбором (например, валюта) — не переход по
@@ -407,7 +462,14 @@ async function handleTextAnswer(client, conversationId, text) {
     const students = state.contactAttributes?.students || [];
     const matched = students.find(s => s.name.trim().toLowerCase() === trimmed);
     if (matched) {
-      return applyStudentSelection(client, conversationId, flows, state, node, matched);
+      return applyStudentSelection(
+        client,
+        conversationId,
+        flows,
+        state,
+        node,
+        matched
+      );
     }
     state.formData[node.field.name] = text.trim();
     state.history.push(state.nodeId);
@@ -462,4 +524,9 @@ async function handleFormSubmitted(client, conversationId, values) {
   return renderNode(client, conversationId, node.next, state);
 }
 
-module.exports = { startFlow, handleOptionSelected, handleTextAnswer, handleFormSubmitted };
+module.exports = {
+  startFlow,
+  handleOptionSelected,
+  handleTextAnswer,
+  handleFormSubmitted,
+};

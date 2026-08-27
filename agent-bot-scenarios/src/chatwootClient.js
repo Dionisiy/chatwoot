@@ -213,6 +213,21 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       return data.custom_attributes?.type || null;
     },
 
+    // Записать/дополнить custom_attributes ДИАЛОГА (не контакта) — например
+    // slideedu_client_id/slideedu_client_name при выборе ученика из списка
+    // (см. engine.js#applyStudentSelection). merge: true обязателен: без
+    // него этот эндпоинт ЗАМЕНЯЕТ весь custom_attributes целиком (см.
+    // ConversationCustomAttributesConcern#custom_attributes в основном
+    // Chatwoot-репо) и стёр бы уже проставленную категорию (custom_attributes.type,
+    // см. getConversationCategory) — с merge:true он оставляет остальные
+    // ключи как есть и обновляет только переданные.
+    async setConversationCustomAttributes(conversationId, attributes) {
+      return http.post(`/conversations/${conversationId}/custom_attributes`, {
+        custom_attributes: attributes,
+        merge: true,
+      });
+    },
+
     // Custom attributes КОНТАКТА (не диалога) — например project/languages,
     // которые Laravel-бэкенд SlideEdu пишет через widget SDK
     // (window.$chatwoot.setUser + setCustomAttributes) при логине уже
