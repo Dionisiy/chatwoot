@@ -40,6 +40,12 @@ function withNav(options, { showBack }) {
   ];
 }
 
+function withOptionalSkip(options, node) {
+  return node.optional
+    ? [...options, { id: SKIP_ID, title: 'Пропустить', value: SKIP_ID }]
+    : options;
+}
+
 function freshState() {
   return { nodeId: 'main_menu', formData: {}, history: [] };
 }
@@ -82,6 +88,33 @@ async function renderNode(client, conversationId, nodeId, state) {
         node.prompt,
         node.field.options.map(o => ({ id: o, title: o, value: o }))
       );
+    } else if (node.field.type === 'student_select') {
+      // Список активных учеников конкретного учителя (Client из SlideEdu,
+      // см. ChatIntegrationController::identity()) — приходит в
+      // state.contactAttributes.students, если контакт залогинен через
+      // виджет SDK (setUser с custom_attributes). Кнопки вместо ручного
+      // ввода ФИО/ID: нельзя опечататься, и оба поля (текущее имя-поле +
+      // client_id) заполняются разом, минуя следующий вопрос "Укажите ID
+      // клиента" — см. applyStudentSelection.
+      const students = state.contactAttributes?.students;
+      if (Array.isArray(students) && students.length) {
+        await client.sendMenu(
+          conversationId,
+          node.prompt,
+          withOptionalSkip(
+            students.map(s => ({ id: String(s.id), title: s.name, value: s.name })),
+            node
+          )
+        );
+      } else if (node.optional) {
+        // Список недоступен (контакт не идентифицирован через SlideEdu) —
+        // прежнее поведение: обычный текстовый вопрос с кнопкой "Пропустить".
+        await client.sendMenu(conversationId, node.prompt, [
+          { id: SKIP_ID, title: 'Пропустить', value: SKIP_ID },
+        ]);
+      } else {
+        await client.sendText(conversationId, node.prompt);
+      }
     } else if (node.optional) {
       // Необязательный текстовый вопрос (например, "Имя клиента", "ID
       // клиента" — учитель мог их не знать в моменте) — кнопка "Пропустить"
@@ -218,6 +251,31 @@ async function startFlow(client, conversationId) {
   await renderNode(client, conversationId, entryNode, state);
 }
 
+// Выбор ученика из списка (клик по кнопке или точное совпадение текста, см.
+// handleOptionSelected/handleTextAnswer) — заполняет не только текущее поле
+// (ФИО), но и client_id, если следующий узел — это как раз вопрос "Укажите
+// ID клиента" (см. flows.json: во всех 4 категориях client_name и client_id
+// идут двумя соседними optional-вопросами подряд). Так учитель, выбравший
+// ученика из списка, не отвечает на тот же вопрос про клиента дважды.
+async function applyStudentSelection(
+  client,
+  conversationId,
+  flows,
+  state,
+  currentNode,
+  student
+) {
+  state.formData[currentNode.field.name] = student.name;
+  state.history.push(state.nodeId);
+  const idNode = flows[currentNode.next];
+  if (idNode?.type === 'question' && idNode.field?.name === 'client_id') {
+    state.formData[idNode.field.name] = String(student.id);
+    state.history.push(currentNode.next);
+    return renderNode(client, conversationId, idNode.next, state);
+  }
+  return renderNode(client, conversationId, currentNode.next, state);
+}
+
 // Пользователь нажал кнопку (menu-опцию, "Назад" или "Главное меню")
 async function handleOptionSelected(client, conversationId, selectedId) {
   const flows = getFlows();
@@ -240,6 +298,16 @@ async function handleOptionSelected(client, conversationId, selectedId) {
     state.formData[currentNode.field.name] = null;
     state.history.push(state.nodeId);
     return renderNode(client, conversationId, currentNode.next, state);
+  }
+
+  // Выбор ученика из динамического списка (см. renderNode/applyStudentSelection).
+  if (currentNode?.type === 'question' && currentNode.field.type === 'student_select') {
+    const students = state.contactAttributes?.students || [];
+    const student = students.find(s => String(s.id) === selectedId);
+    if (!student) {
+      return renderNode(client, conversationId, state.nodeId, state);
+    }
+    return applyStudentSelection(client, conversationId, flows, state, currentNode, student);
   }
 
   // Ответ на question с полем-выбором (например, валюта) — не переход по
@@ -302,6 +370,22 @@ async function handleTextAnswer(client, conversationId, text) {
     // Не совпало ни с одним вариантом — переспрашиваем тем же вопросом,
     // кнопки уже были отправлены раньше и повторно не дублируются.
     return renderNode(client, conversationId, state.nodeId, state);
+  }
+
+  // Ответ на вопрос-выбор ученика напечатан текстом (см. renderNode) —
+  // сравниваем с ФИО из списка без учёта регистра/пробелов. Если не
+  // совпало ни с одним известным учеником (например, его ещё нет в
+  // SlideEdu) — принимаем как обычный свободный ввод ФИО, а не
+  // переспрашиваем: список — это подсказка, а не строгий валидатор.
+  if (node?.type === 'question' && node.field.type === 'student_select') {
+    const students = state.contactAttributes?.students || [];
+    const matched = students.find(s => s.name.trim().toLowerCase() === trimmed);
+    if (matched) {
+      return applyStudentSelection(client, conversationId, flows, state, node, matched);
+    }
+    state.formData[node.field.name] = text.trim();
+    state.history.push(state.nodeId);
+    return renderNode(client, conversationId, node.next, state);
   }
 
   if (!node || node.type !== 'question') {

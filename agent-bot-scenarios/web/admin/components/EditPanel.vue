@@ -86,11 +86,21 @@ const selectFieldOptionsText = computed({
           <option value="email">email</option>
           <option value="select">select</option>
           <option value="date">date</option>
+          <option value="student_select">student_select</option>
         </select>
 
         <template v-if="node.field.type === 'select'">
           <label>Варианты (через запятую)</label>
           <input v-model="selectFieldOptionsText" type="text">
+        </template>
+
+        <template v-if="node.field.type === 'student_select'">
+          <p class="hint">
+            Список учеников подтягивается автоматически из SlideEdu
+            (contactAttributes.students) — вариантов вручную вводить не
+            нужно. Если у контакта нет списка учеников, вопрос покажется как
+            обычный текстовый.
+          </p>
         </template>
 
         <label>Следующий узел</label>
@@ -162,6 +172,7 @@ input[type="text"], textarea, select {
   font-family: inherit;
 }
 textarea { min-height: 60px; resize: vertical; }
+.hint { font-size: 12px; color: #64748b; margin: 4px 0 0; line-height: 1.4; }
 .opt-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: center; }
 .opt-row input, .opt-row select { flex: 1; min-width: 0; }
 .opt-row button { flex-shrink: 0; }
