@@ -34,7 +34,7 @@ export default {
     :style="{ borderColor: widgetColor }"
   >
     <button
-      class="option-button button block w-full bg-transparent border-0 cursor-pointer leading-normal ltr:text-left rtl:text-right whitespace-normal rounded-xl min-h-[2.5rem] py-2.5 px-4"
+      class="option-button block w-full bg-transparent hover:bg-n-slate-3 dark:hover:bg-n-alpha-2 transition-colors border-0 cursor-pointer leading-normal ltr:text-left rtl:text-right whitespace-normal rounded-xl min-h-[2.5rem] py-2.5 px-4"
       @click="onClick"
     >
       <span :style="{ color: widgetColor }">{{ action.title }}</span>
