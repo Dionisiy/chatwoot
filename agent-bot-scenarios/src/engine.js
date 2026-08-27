@@ -13,6 +13,22 @@ const slideeduClient = createSlideEduClient({
   sharedSecret: process.env.CHAT_BOT_SHARED_SECRET,
 });
 
+// Отдельная переменная от SLIDEEDU_BASE_URL: та — адрес Laravel API
+// (.../api/chat/students, с портом на стейдже), а это — публичный домен
+// SlideEdu-фронтенда, куда агент реально переходит глазами (стейдж
+// https://stage.slideedu.com, прод https://app.slideedu.com — разные хосты,
+// не просто разные порты одного и того же). Без неё просто не пишем ссылку.
+const SLIDEEDU_FRONTEND_URL = (process.env.SLIDEEDU_FRONTEND_URL || '').replace(
+  /\/+$/,
+  ''
+);
+
+function slideeduClientUrl(studentId) {
+  return SLIDEEDU_FRONTEND_URL
+    ? `${SLIDEEDU_FRONTEND_URL}/edit-client/${studentId}`
+    : null;
+}
+
 const BACK_ID = '__back__';
 const MENU_ID = '__menu__';
 const SKIP_ID = '__skip__';
@@ -323,9 +339,11 @@ async function applyStudentSelection(
   // возможны полные тёзки по ФИО, так что именно ID (а не имя из транскрипта)
   // должен быть тем, на что смотрит агент, чтобы не перепутать клиента.
   try {
+    const clientUrl = slideeduClientUrl(student.id);
     await client.setConversationCustomAttributes(conversationId, {
       slideedu_client_id: student.id,
       slideedu_client_name: student.name,
+      ...(clientUrl ? { slideedu_client_url: clientUrl } : {}),
     });
   } catch (err) {
     console.error(
