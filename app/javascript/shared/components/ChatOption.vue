@@ -29,27 +29,15 @@ export default {
 
 <template>
   <li
-    class="option"
+    class="option w-full max-w-full mb-2 last:mb-0 rounded-xl border border-solid border-n-brand"
     :class="{ 'is-selected': isSelected }"
     :style="{ borderColor: widgetColor }"
   >
-    <button class="option-button button" @click="onClick">
+    <button
+      class="option-button button block w-full bg-transparent border-0 cursor-pointer leading-normal ltr:text-left rtl:text-right whitespace-normal rounded-xl min-h-[2.5rem] py-2.5 px-4"
+      @click="onClick"
+    >
       <span :style="{ color: widgetColor }">{{ action.title }}</span>
     </button>
   </li>
 </template>
-
-<style scoped lang="scss">
-.option {
-  @apply rounded-[5rem] border border-solid border-n-brand ltr:float-left rtl:float-right m-1 max-w-full;
-
-  .option-button {
-    @apply bg-transparent border-0 cursor-pointer h-auto leading-normal ltr:text-left rtl:text-right whitespace-normal rounded-[2rem] min-h-[2.5rem];
-
-    span {
-      display: inline-block;
-      vertical-align: middle;
-    }
-  }
-}
-</style>
