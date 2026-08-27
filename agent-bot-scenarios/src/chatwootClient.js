@@ -226,6 +226,16 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
       return data.meta?.sender?.custom_attributes || {};
     },
 
+    // Email контакта — нужен, чтобы бот мог сам спросить SlideEdu про
+    // учеников этого учителя напрямую (см. slideeduClient.js), не дожидаясь
+    // правок на стороне фронтенда SlideEdu. Email в Chatwoot уже есть из
+    // штатного identity-потока (фронтенд передаёт его в setUser() при
+    // логине) — этот метод просто читает его обратно.
+    async getContactEmail(conversationId) {
+      const { data } = await http.get(`/conversations/${conversationId}`);
+      return data.meta?.sender?.email || null;
+    },
+
     // Агрегированная статистика ответов/решений — используем родные отчёты
     // Chatwoot (app/builders/v2/reports/conversations/metric_builder.rb),
     // а не считаем среднее время вручную: там учтены рабочие часы,

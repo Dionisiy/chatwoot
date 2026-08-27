@@ -3,6 +3,15 @@
 // подхватываются следующим же сообщением, без перезапуска pm2-процесса.
 const { getFlows } = require('./flowStore');
 const store = require('./store');
+const { createSlideEduClient } = require('./slideeduClient');
+
+// Один клиент на процесс, как getFlows()/store — конфигурация не меняется
+// на лету. Если SLIDEEDU_BASE_URL/CHAT_BOT_SHARED_SECRET не заданы, клиент
+// сам по себе безопасно возвращает пустой список (см. slideeduClient.js).
+const slideeduClient = createSlideEduClient({
+  baseUrl: process.env.SLIDEEDU_BASE_URL,
+  sharedSecret: process.env.CHAT_BOT_SHARED_SECRET,
+});
 
 const BACK_ID = '__back__';
 const MENU_ID = '__menu__';
@@ -238,6 +247,23 @@ async function startFlow(client, conversationId) {
     contactAttributes = await client.getContactCustomAttributes(conversationId);
   } catch (err) {
     console.error('[engine] getContactCustomAttributes failed:', err.message);
+  }
+
+  // Список учеников — напрямую от SlideEdu по email контакта (см.
+  // slideeduClient.js), а НЕ через custom_attributes.students, которые
+  // должен был бы проставлять фронтенд SlideEdu через setUser(). Так фича
+  // работает независимо от отдельного (недоступного нам) репозитория
+  // фронтенда — единственное, что для неё нужно, уже и так есть: email
+  // контакта, который Chatwoot получает при обычном логине через виджет.
+  // Если email не задан, SlideEdu не настроен (см. slideeduClient.js) или
+  // запрос не удался — просто остаёмся без списка (contactAttributes.students
+  // не переопределяем), вопрос ФИО в этом случае — обычный текстовый.
+  try {
+    const email = await client.getContactEmail(conversationId);
+    const students = await slideeduClient.getStudentsByEmail(email);
+    if (students.length) contactAttributes.students = students;
+  } catch (err) {
+    console.error('[engine] getStudentsByEmail failed:', err.message);
   }
 
   // Категория не задана — старое поведение по умолчанию (main_menu).
