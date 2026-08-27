@@ -5,6 +5,7 @@ import Toolbar from './components/Toolbar.vue';
 import Sidebar from './components/Sidebar.vue';
 import Canvas from './components/Canvas.vue';
 import EditPanel from './components/EditPanel.vue';
+import HistoryPanel from './components/HistoryPanel.vue';
 
 onMounted(loadAll);
 
@@ -30,16 +31,20 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       <Canvas />
       <EditPanel />
     </div>
+    <HistoryPanel />
   </template>
 </template>
 
 <style>
-.loading, .load-error {
+.loading,
+.load-error {
   padding: 40px;
   font-size: 14px;
   color: var(--muted);
 }
-.load-error { color: #dc2626; }
+.load-error {
+  color: #dc2626;
+}
 
 .layout {
   display: flex;

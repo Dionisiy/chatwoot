@@ -1,7 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
-const { createChatwootClient, verifyAdminToken } = require('./chatwootClient');
+const { createChatwootClient, verifyAdminToken, getProfile } = require('./chatwootClient');
 const { verifySignature } = require('./verifySignature');
 const engine = require('./engine');
 const { buildDashboardData } = require('./dashboard');
@@ -157,6 +157,12 @@ async function requireAdminAuth(req, res, next) {
     return;
   }
 
+  // Сохраняем сырой токен на запросе — POST /admin/api/flows использует его
+  // повторно (см. getProfile в chatwootClient.js), чтобы записать в историю
+  // версий, КТО сохранил правку. Не хранить в adminTokenCache вместе с
+  // ok/expiresAt: там ключ — сам токен, а не место для его копии на запросе.
+  req.adminToken = token;
+
   const cached = adminTokenCache.get(token);
   if (cached && cached.expiresAt > Date.now()) {
     if (cached.ok) return next();
@@ -198,13 +204,25 @@ app.get('/admin/api/teams', requireAdminAuth, async (_req, res) => {
   }
 });
 
-app.get('/admin/api/flows', requireAdminAuth, (_req, res) => {
-  res.json(flowStore.reloadFlows());
+app.get('/admin/api/flows', requireAdminAuth, async (_req, res) => {
+  try {
+    res.json(await flowStore.reloadFlows());
+  } catch (err) {
+    console.error('[admin] reloadFlows failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/admin/api/flows', requireAdminAuth, (req, res) => {
+app.post('/admin/api/flows', requireAdminAuth, async (req, res) => {
   try {
-    flowStore.saveFlows(req.body);
+    // Не блокируем сохранение, если Chatwoot недоступен/токен не отдал
+    // профиль — getProfile сам не бросает исключений, createdBy в этом
+    // случае просто null (см. chatwootClient.js#getProfile).
+    const createdBy = await getProfile({
+      baseUrl: process.env.CHATWOOT_BASE_URL,
+      token: req.adminToken,
+    });
+    await flowStore.saveFlows(req.body, { createdBy });
     res.json({ ok: true });
   } catch (err) {
     if (err.validationErrors) {
@@ -212,6 +230,59 @@ app.post('/admin/api/flows', requireAdminAuth, (req, res) => {
       return;
     }
     console.error('[admin] saveFlows failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Список версий (без content — список может быть длинным, content незачем
+// гонять по сети до того, как выбрали конкретную версию).
+app.get('/admin/api/flows/history', requireAdminAuth, async (_req, res) => {
+  try {
+    res.json(await flowStore.listVersions());
+  } catch (err) {
+    console.error('[admin] listVersions failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Полное содержимое одной версии — например, чтобы посмотреть, что там,
+// прежде чем восстанавливать.
+app.get('/admin/api/flows/history/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const version = await flowStore.getVersion(Number(req.params.id));
+    if (!version) {
+      res.status(404).json({ error: 'Версия не найдена' });
+      return;
+    }
+    res.json(version);
+  } catch (err) {
+    console.error('[admin] getVersion failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Откат к старой версии — ЭТО ТОЖЕ сохранение (см. flowStore.js): содержимое
+// старой версии записывается как НОВАЯ строка, история не перезаписывается и
+// не теряется даже после отката.
+app.post('/admin/api/flows/history/:id/restore', requireAdminAuth, async (req, res) => {
+  try {
+    const version = await flowStore.getVersion(Number(req.params.id));
+    if (!version) {
+      res.status(404).json({ error: 'Версия не найдена' });
+      return;
+    }
+    const createdBy = await getProfile({
+      baseUrl: process.env.CHATWOOT_BASE_URL,
+      token: req.adminToken,
+    });
+    await flowStore.saveFlows(version.content, { createdBy });
+    res.json({ ok: true, flows: version.content });
+  } catch (err) {
+    if (err.validationErrors) {
+      res.status(422).json({ error: err.message, errors: err.validationErrors });
+      return;
+    }
+    console.error('[admin] restore failed:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -286,6 +357,21 @@ async function handleEvent(payload) {
   }
 }
 
-app.listen(PORT, () => {
-  console.log(`Agent bot router listening on :${PORT}`);
-});
+// Дерево сценария теперь читается из Postgres (см. flowStore.js/db.js), а не
+// с диска — кэш нужно заполнить ДО того, как сервер начнёт принимать
+// вебхуки, иначе первое же сообщение упадёт на пустом getFlows(). Если это
+// не удалось (нет AGENT_BOT_DATABASE_URL, недоступна база, таблица пуста) —
+// падаем сразу и громко, а не поднимаем сервер, который не может отвечать
+// ни на одно сообщение.
+(async () => {
+  try {
+    await flowStore.init();
+  } catch (err) {
+    console.error('[startup] flowStore.init() failed:', err.message);
+    process.exit(1);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Agent bot router listening on :${PORT}`);
+  });
+})();

@@ -24,6 +24,11 @@ export const state = reactive({
   saveStatus: null, // { ok: true, text } | { ok: false, text }
   scrollTarget: null, // id узла, к которому нужно проскроллить canvas
   search: '', // общий фильтр сайдбара — правится тулбаром, читается сайдбаром
+  historyOpen: false,
+  historyLoading: false,
+  historyError: null,
+  historyVersions: [], // [{ id, created_at, created_by }], без content (см. HistoryPanel.vue)
+  historyRestoringId: null,
 });
 
 function setDirty() {
@@ -64,17 +69,88 @@ export async function save() {
     });
     const data = await res.json();
     if (!res.ok) {
-      state.saveStatus = { ok: false, text: (data.errors || [data.error || 'неизвестная ошибка']).join('; ') };
+      state.saveStatus = {
+        ok: false,
+        text: (data.errors || [data.error || 'неизвестная ошибка']).join('; '),
+      };
       return false;
     }
     state.dirty = false;
-    state.saveStatus = { ok: true, text: 'Сохранено ' + new Date().toLocaleTimeString() };
+    state.saveStatus = {
+      ok: true,
+      text: 'Сохранено ' + new Date().toLocaleTimeString(),
+    };
     return true;
   } catch (err) {
     state.saveStatus = { ok: false, text: 'Ошибка сети: ' + err.message };
     return false;
   } finally {
     state.saving = false;
+  }
+}
+
+// История версий (см. db/schema.sql, flowStore.js) — каждое сохранение
+// (включая восстановление старой версии) добавляет новую строку, ничего не
+// перезаписывая, так что список всегда отражает реальную последовательность
+// правок, а не только "текущее" и "предыдущее".
+export async function openHistory() {
+  state.historyOpen = true;
+  state.historyLoading = true;
+  state.historyError = null;
+  try {
+    const res = await fetch('api/flows/history');
+    if (!res.ok) throw new Error(`GET api/flows/history: ${res.status}`);
+    state.historyVersions = await res.json();
+  } catch (err) {
+    state.historyError = err.message;
+  } finally {
+    state.historyLoading = false;
+  }
+}
+
+export function closeHistory() {
+  state.historyOpen = false;
+}
+
+function confirmRestore() {
+  // eslint-disable-next-line no-alert, no-restricted-globals
+  return confirm(
+    'Восстановить эту версию? Текущее состояние не потеряется — оно тоже останется в истории.'
+  );
+}
+
+export async function restoreVersion(id) {
+  if (!confirmRestore()) return;
+  state.historyRestoringId = id;
+  try {
+    const res = await fetch(`api/flows/history/${id}/restore`, {
+      method: 'POST',
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      state.saveStatus = {
+        ok: false,
+        text: (
+          data.errors || [data.error || 'не удалось восстановить версию']
+        ).join('; '),
+      };
+      return;
+    }
+    state.flows = data.flows;
+    state.dirty = false;
+    state.selectedId = null;
+    state.saveStatus = {
+      ok: true,
+      text: 'Версия восстановлена ' + new Date().toLocaleTimeString(),
+    };
+    // Панель истории оставляем открытой и перечитываем список — само
+    // восстановление тоже стало новой версией и появится сверху, это
+    // наглядное подтверждение того, что действие сработало.
+    await openHistory();
+  } catch (err) {
+    state.saveStatus = { ok: false, text: 'Ошибка сети: ' + err.message };
+  } finally {
+    state.historyRestoringId = null;
   }
 }
 
@@ -92,17 +168,35 @@ export function nodePreview(node) {
 // node.field.name/node.options и т.п. у объекта, где их ещё нет).
 function defaultsForType(type, id) {
   const base = { type };
-  if (type === 'menu') { base.title = 'Новое меню'; base.options = []; }
-  if (type === 'question') { base.prompt = 'Новый вопрос'; base.field = { name: `field_${id}`, type: 'text' }; }
-  if (type === 'message') { base.text = 'Текст сообщения'; }
-  if (type === 'link') { base.text = 'Текст ссылки'; base.url = ''; base.linkTitle = 'Ссылка'; }
-  if (type === 'end') { base.text = 'Текст завершения'; }
-  if (type === 'submit') { base.message = 'Ваша заявка создана, ожидайте решения'; base.group = ''; }
+  if (type === 'menu') {
+    base.title = 'Новое меню';
+    base.options = [];
+  }
+  if (type === 'question') {
+    base.prompt = 'Новый вопрос';
+    base.field = { name: `field_${id}`, type: 'text' };
+  }
+  if (type === 'message') {
+    base.text = 'Текст сообщения';
+  }
+  if (type === 'link') {
+    base.text = 'Текст ссылки';
+    base.url = '';
+    base.linkTitle = 'Ссылка';
+  }
+  if (type === 'end') {
+    base.text = 'Текст завершения';
+  }
+  if (type === 'submit') {
+    base.message = 'Ваша заявка создана, ожидайте решения';
+    base.group = '';
+  }
   return base;
 }
 
 export function addNode(id, type) {
-  if (!id || !/^[a-zA-Z0-9_]+$/.test(id)) throw new Error('id может содержать только латиницу, цифры и _');
+  if (!id || !/^[a-zA-Z0-9_]+$/.test(id))
+    throw new Error('id может содержать только латиницу, цифры и _');
   if (state.flows[id]) throw new Error('Узел с таким id уже существует');
 
   state.flows[id] = defaultsForType(type, id);
@@ -144,18 +238,27 @@ export function computeLayout() {
     if (!node) continue;
     const nexts = [];
     if (node.type === 'menu' && Array.isArray(node.options)) {
-      node.options.forEach(o => { if (o.next) nexts.push(o.next); });
+      node.options.forEach(o => {
+        if (o.next) nexts.push(o.next);
+      });
     }
-    if ((node.type === 'question' || node.type === 'message') && node.next) nexts.push(node.next);
+    if ((node.type === 'question' || node.type === 'message') && node.next)
+      nexts.push(node.next);
     nexts.forEach(n => {
-      if (state.flows[n] && !visited.has(n)) { visited.add(n); queue.push([n, d + 1]); }
+      if (state.flows[n] && !visited.has(n)) {
+        visited.add(n);
+        queue.push([n, d + 1]);
+      }
     });
   }
 
   const maxDepth = Math.max(0, ...Object.values(depth));
   let orphanIndex = 0;
   Object.keys(state.flows).forEach(id => {
-    if (!visited.has(id)) { depth[id] = maxDepth + 2; order[id] = orphanIndex++; }
+    if (!visited.has(id)) {
+      depth[id] = maxDepth + 2;
+      order[id] = orphanIndex++;
+    }
   });
 
   return { depth, order };
@@ -174,9 +277,16 @@ export function edgesFor(id) {
   const out = [];
   if (!node) return out;
   if (node.type === 'menu' && Array.isArray(node.options)) {
-    node.options.forEach(o => { if (o.next && state.flows[o.next]) out.push(o.next); });
+    node.options.forEach(o => {
+      if (o.next && state.flows[o.next]) out.push(o.next);
+    });
   }
-  if ((node.type === 'question' || node.type === 'message') && node.next && state.flows[node.next]) out.push(node.next);
+  if (
+    (node.type === 'question' || node.type === 'message') &&
+    node.next &&
+    state.flows[node.next]
+  )
+    out.push(node.next);
   return out;
 }
 
@@ -205,9 +315,12 @@ export function branchGroups() {
         ids.push(id);
         const node = state.flows[id];
         if (node.type === 'menu' && Array.isArray(node.options)) {
-          node.options.forEach(o => { if (o.next) queue.push(o.next); });
+          node.options.forEach(o => {
+            if (o.next) queue.push(o.next);
+          });
         }
-        if ((node.type === 'question' || node.type === 'message') && node.next) queue.push(node.next);
+        if ((node.type === 'question' || node.type === 'message') && node.next)
+          queue.push(node.next);
       }
       groups[key] = ids;
     });

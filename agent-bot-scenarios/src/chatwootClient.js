@@ -278,6 +278,25 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
 // access_token_auth_helper.rb: validate_bot_access_token! пропускает всех
 // Current.user.is_a?(User) без проверки whitelist'а), так что любой
 // admin-only эндпоинт годится для этой проверки.
+// Имя/email администратора, сохранившего версию сценария (см. server.js —
+// POST /admin/api/flows, flowStore.js#saveFlows createdBy) — просто читаем
+// его же личный токен ещё раз, отдельного механизма identity заводить не
+// нужно. Не бросает исключение при сбое — атрибуция версии полезна, но не
+// настолько, чтобы блокировать само сохранение сценария при недоступности
+// этого эндпоинта.
+async function getProfile({ baseUrl, token }) {
+  try {
+    const { data } = await axios.get(`${baseUrl}/api/v1/profile`, {
+      headers: { api_access_token: token },
+      timeout: 10000,
+    });
+    return data.name || data.email || null;
+  } catch (err) {
+    console.error('[chatwootClient] getProfile failed:', err.message);
+    return null;
+  }
+}
+
 async function verifyAdminToken({ baseUrl, accountId, token }) {
   try {
     await axios.get(`${baseUrl}/api/v1/accounts/${accountId}/webhooks`, {
@@ -293,4 +312,4 @@ async function verifyAdminToken({ baseUrl, accountId, token }) {
   }
 }
 
-module.exports = { createChatwootClient, verifyAdminToken };
+module.exports = { createChatwootClient, verifyAdminToken, getProfile };

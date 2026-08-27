@@ -1,32 +1,56 @@
-const fs = require('fs');
-const path = require('path');
+const { pool } = require('./db');
 
-// Единственный источник правды для дерева сценария — flows.json (раньше был
-// flows.js с фабрикой requestForm, см. scripts/export-flows.js). Редактор
-// /admin читает и пишет этот же файл через saveFlows(), после чего движок
-// (engine.js вызывает getFlows() внутри каждого обработчика, а не хранит
-// flows в константе на верхнем уровне модуля) сразу видит новую версию —
-// без перезапуска pm2-процесса.
-
-const FLOWS_PATH = path.join(__dirname, 'flows.json');
+// Единственный источник правды для дерева сценария — таблица
+// agent_bot_flow_versions в Postgres (см. db/schema.sql), а не файл на диске:
+// раньше это был flows.json, который жил вне git (см. README/CLAUDE.md),
+// требовал ручного бэкапа перед переключением веток на дропле и не имел
+// истории изменений вообще — правка поверх правки без возможности
+// посмотреть, что было раньше, или откатиться. Каждое сохранение из /admin —
+// это НОВАЯ строка (append-only), "текущая" версия — просто строка с
+// максимальным id; история версий получается бесплатно, без отдельной
+// таблицы.
+//
+// getFlows() остаётся СИНХРОННОЙ функцией, как и раньше — engine.js вызывает
+// её внутри каждого обработчика без await в паре десятков мест, и это менять
+// не требуется: она читает in-memory кэш, а не базу напрямую. Кэш заполняется
+// один раз при старте процесса (см. init(), вызывается из server.js ДО
+// app.listen()) и обновляется при каждом saveFlows()/reloadFlows().
 
 let cache = null;
 
-function readFromDisk() {
-  const raw = fs.readFileSync(FLOWS_PATH, 'utf8');
-  return JSON.parse(raw);
+async function loadCurrentFromDb() {
+  const { rows } = await pool.query(
+    'SELECT content FROM agent_bot_flow_versions ORDER BY id DESC LIMIT 1'
+  );
+  if (!rows.length) {
+    throw new Error(
+      'agent_bot_flow_versions пуста — нужно один раз засеять текущим деревом сценария (см. db/seed-from-json.js, README).'
+    );
+  }
+  return rows[0].content;
 }
 
-function getFlows() {
-  if (!cache) cache = readFromDisk();
+// Вызывается один раз при старте процесса, ДО того как сервер начнёт
+// принимать вебхуки — иначе getFlows() упадёт на пустом кэше на первом же
+// сообщении.
+async function init() {
+  cache = await loadCurrentFromDb();
   return cache;
 }
 
-// Сбросить кэш и перечитать с диска (на случай, если файл поменяли вручную,
-// не через /admin — например, git pull забрал новую версию flows.json).
-function reloadFlows() {
-  cache = null;
-  return getFlows();
+function getFlows() {
+  if (!cache) {
+    throw new Error('flowStore.init() ещё не вызван (или упал) — кэш дерева сценария пуст.');
+  }
+  return cache;
+}
+
+// Перечитать текущую версию из базы, сбросив кэш — на случай прямой правки
+// записи в БД в обход /admin (аналог старого «git pull забрал новый
+// flows.json»). Дергается вручную через GET /admin/api/flows.
+async function reloadFlows() {
+  cache = await loadCurrentFromDb();
+  return cache;
 }
 
 const VALID_TYPES = ['menu', 'question', 'message', 'link', 'end', 'submit'];
@@ -93,15 +117,51 @@ function validate(flows) {
   return errors;
 }
 
-function saveFlows(newFlows) {
+// createdBy — имя/email администратора, сохранившего эту версию (см.
+// chatwootClient.js#getProfile, вызывается из server.js на POST
+// /admin/api/flows) — необязателен, история версий полезна и без него, но с
+// ним по-настоящему видно, кто и когда правил сценарий.
+async function saveFlows(newFlows, { createdBy } = {}) {
   const errors = validate(newFlows);
   if (errors.length) {
     const err = new Error('Дерево сценария невалидно');
     err.validationErrors = errors;
     throw err;
   }
-  fs.writeFileSync(FLOWS_PATH, JSON.stringify(newFlows, null, 2) + '\n');
+  await pool.query(
+    'INSERT INTO agent_bot_flow_versions (content, created_by) VALUES ($1, $2)',
+    [newFlows, createdBy || null]
+  );
   cache = newFlows;
+  return newFlows;
 }
 
-module.exports = { getFlows, reloadFlows, saveFlows, validate, FLOWS_PATH };
+// Список версий БЕЗ содержимого (content может быть тяжёлым деревом) — для
+// списка в /admin. limit ограничивает на случай, если версий накопится
+// действительно много (каждое сохранение — новая строка).
+async function listVersions(limit = 50) {
+  const { rows } = await pool.query(
+    'SELECT id, created_at, created_by FROM agent_bot_flow_versions ORDER BY id DESC LIMIT $1',
+    [limit]
+  );
+  return rows;
+}
+
+// Полное содержимое одной версии — для предпросмотра/отката.
+async function getVersion(id) {
+  const { rows } = await pool.query(
+    'SELECT id, content, created_at, created_by FROM agent_bot_flow_versions WHERE id = $1',
+    [id]
+  );
+  return rows[0] || null;
+}
+
+module.exports = {
+  init,
+  getFlows,
+  reloadFlows,
+  saveFlows,
+  listVersions,
+  getVersion,
+  validate,
+};
