@@ -32,6 +32,24 @@ function slideeduClientUrl(studentId) {
 const BACK_ID = '__back__';
 const MENU_ID = '__menu__';
 const SKIP_ID = '__skip__';
+// Технический nodeId, которого нет и не может быть в flows.json — им
+// помечается state ПОСЛЕ submit. Раньше вместо этого стоял
+// store.clear(conversationId): state исчезал целиком, и следующее любое
+// сообщение клиента в ЭТОМ ЖЕ (всё ещё Open) тикете попадало в
+// handleTextAnswer с state === null, а там `if (!state) return
+// startFlow(...)` — бот заново спрашивал "Укажите проект"/ФИО/описание с
+// нуля. Баг снят на видео 2026-08-27: тикет №155 после сабмита переспрашивал
+// весь интейк на каждое следующее сообщение клиента ("тест"). Теперь вместо
+// очистки state помечается терминальным — заявка уже создана и передана
+// агенту (см. renderNode#submit: assignTeamByName + status 'open'), дальше в
+// этом диалоге бот молчит, отвечает человек. Для новой заявки у клиента есть
+// отдельная кнопка "Начать новую заявку" — она создаёт отдельный
+// conversationId (см. ChatFooter.vue), путать с этим диалогом её не нужно.
+const DONE_ID = '__done__';
+
+function isDone(state) {
+  return state?.nodeId === DONE_ID;
+}
 
 // Категории pre-chat формы → узел, с которого бот начинает диалог для этой
 // категории (см. отчёт по замечаниям от 2026-08-17, пункты 2-3: раньше бот
@@ -263,7 +281,14 @@ async function renderNode(client, conversationId, nodeId, state) {
     // форму и создаёт полностью отдельный новый conversation/display_id,
     // независимо от статуса текущего. См. README → "Несколько заявок от
     // одного клиента".
-    store.clear(conversationId);
+    //
+    // Раньше здесь стоял store.clear(conversationId) — см. комментарий у
+    // DONE_ID про то, почему это ломало последующие сообщения в этом же
+    // тикете. Держим в store лёгкий терминальный маркер вместо полного
+    // state (formData/history/contactAttributes/students больше не нужны —
+    // сценарий окончен), чтобы не копить в памяти процесса данные завершённых
+    // тикетов без необходимости.
+    store.set(conversationId, { nodeId: DONE_ID });
   }
 }
 
@@ -340,10 +365,19 @@ async function applyStudentSelection(
   // должен быть тем, на что смотрит агент, чтобы не перепутать клиента.
   try {
     const clientUrl = slideeduClientUrl(student.id);
+    // bumess_url приходит прямо от Laravel (ChatIntegrationController#
+    // activeStudentsFor) уже полностью готовой ссылкой — {env.main_url}/
+    // bumess/chats/{clients.remote_id}, домен там зависит от env клиента
+    // (Promova/Govorika/Poland — разные хосты), поэтому в отличие от
+    // slideedu_client_url бот его не собирает сам, а только пробрасывает
+    // как есть. null, если у клиента ещё нет remote_id в CRM.
     await client.setConversationCustomAttributes(conversationId, {
       slideedu_client_id: student.id,
       slideedu_client_name: student.name,
       ...(clientUrl ? { slideedu_client_url: clientUrl } : {}),
+      ...(student.bumess_url
+        ? { slideedu_client_bumess_url: student.bumess_url }
+        : {}),
     });
   } catch (err) {
     console.error(
@@ -365,6 +399,12 @@ async function applyStudentSelection(
 async function handleOptionSelected(client, conversationId, selectedId) {
   const flows = getFlows();
   const state = store.get(conversationId) || freshState();
+  // Заявка в этом тикете уже создана и передана агенту (см. DONE_ID) —
+  // случайный/устаревший клик по давно отправленной кнопке не должен ничего
+  // запускать заново. `return undefined` (а не голый `return`) — специально,
+  // чтобы не сломать `consistent-return`: остальные ветки этой функции везде
+  // возвращают значение (Promise из renderNode).
+  if (isDone(state)) return undefined;
 
   if (selectedId === MENU_ID) {
     state.history = [];
@@ -438,6 +478,13 @@ async function handleTextAnswer(client, conversationId, text) {
   if (!state) {
     return startFlow(client, conversationId);
   }
+  // См. DONE_ID: заявка в этом тикете уже создана, дальше отвечает агент —
+  // бот больше не должен ничего писать в этот диалог (это и есть баг,
+  // пойманный на видео 2026-08-27: без этой проверки следующее сообщение
+  // клиента улетало в startFlow() и переспрашивало весь интейк заново).
+  // `return undefined`, не голый `return` — см. тот же комментарий в
+  // handleOptionSelected про consistent-return.
+  if (isDone(state)) return undefined;
 
   const trimmed = text.trim().toLowerCase();
   if (trimmed === 'меню' || trimmed === 'главное меню') {
@@ -524,6 +571,7 @@ async function handleFormSubmitted(client, conversationId, values) {
   const flows = getFlows();
   const state = store.get(conversationId);
   if (!state) return startFlow(client, conversationId);
+  if (isDone(state)) return undefined; // см. DONE_ID; про return undefined — см. handleOptionSelected
 
   const node = flows[state.nodeId];
   if (!node || node.type !== 'question' || node.field.type !== 'date') {
