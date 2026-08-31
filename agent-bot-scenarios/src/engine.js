@@ -261,6 +261,16 @@ async function renderNode(client, conversationId, nodeId, state) {
         console.error('[engine] addLabel failed:', err.message);
       }
     }
+    // assignee (конкретный оператор) не заменяет group — команда остаётся
+    // видна для отчётности/фильтров, а assignee просто дополнительно кладёт
+    // заявку в очередь конкретного человека (см. node.assignee в /admin).
+    if (node.assignee) {
+      try {
+        await client.assignAgentByName(conversationId, node.assignee);
+      } catch (err) {
+        console.error('[engine] assignAgentByName failed:', err.message);
+      }
+    }
     // Диалог намеренно НЕ резолвится: заявка остаётся открытой, пока агент
     // реально её не обработает — иначе резолв в момент сабмита ломает
     // отчётность Chatwoot (время решения считается от резолва, а не от

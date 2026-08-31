@@ -204,6 +204,19 @@ app.get('/admin/api/teams', requireAdminAuth, async (_req, res) => {
   }
 });
 
+app.get('/admin/api/agents', requireAdminAuth, async (_req, res) => {
+  if (!dashboardClient) {
+    res.json([]);
+    return;
+  }
+  try {
+    res.json((await dashboardClient.listAgents()).map(a => a.name));
+  } catch (err) {
+    console.error('[admin] listAgents failed:', err.message);
+    res.json([]);
+  }
+});
+
 app.get('/admin/api/flows', requireAdminAuth, async (_req, res) => {
   try {
     res.json(await flowStore.reloadFlows());

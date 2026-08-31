@@ -142,6 +142,11 @@ const selectFieldOptionsText = computed({
         <datalist id="teams-list">
           <option v-for="t in state.teamNames" :key="t" :value="t" />
         </datalist>
+        <label>Оператор (автоназначение, необязательно)</label>
+        <input v-model="node.assignee" type="text" list="agents-list" @input="touch">
+        <datalist id="agents-list">
+          <option v-for="a in state.agentNames" :key="a" :value="a" />
+        </datalist>
       </template>
 
       <div class="row-actions">

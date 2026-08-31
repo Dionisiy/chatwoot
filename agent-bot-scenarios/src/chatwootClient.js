@@ -34,6 +34,8 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
 
   // Кэш имя-команды → team_id, чтобы не дёргать /teams на каждый submit.
   let teamsCache = null;
+  // Аналогичный кэш для агентов (см. assignAgentByName ниже).
+  let agentsCache = null;
 
   return {
     // Обычное текстовое сообщение от бота
@@ -170,6 +172,56 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
         return null;
       }
       return this.assignTeam(conversationId, team.id);
+    },
+
+    // Прямой ассайн на конкретного агента по assignee_id — тот же эндпоинт
+    // assignments, что и assignTeam, только с другим ключом (см.
+    // app/controllers/api/v1/accounts/conversations/assignments_controller.rb:
+    // params.key?(:assignee_id) ветка). create-экшн этого контроллера уже в
+    // BOT_ACCESSIBLE_ENDPOINTS, поэтому назначение (в отличие от чтения
+    // списка агентов) работает обычным токеном бота.
+    async assignAgent(conversationId, agentId) {
+      return http.post(`/conversations/${conversationId}/assignments`, {
+        assignee_id: agentId,
+      });
+    },
+
+    async listAgents() {
+      // GET /agents токеном бота даёт 401 (не в BOT_ACCESSIBLE_ENDPOINTS,
+      // ровно как и /teams) — используем админский токен.
+      if (!adminHttp) {
+        console.warn(
+          '[chatwootClient] CHATWOOT_ADMIN_TOKEN не задан — бот не может ' +
+            'получить список агентов (GET /agents запрещён для токена бота), ' +
+            'автоназначение на оператора работать не будет.'
+        );
+        return [];
+      }
+      const { data } = await adminHttp.get('/agents');
+      return data;
+    },
+
+    // Автоназначение заявки конкретному оператору по имени или email,
+    // настраивается в узле submit (node.assignee) в /admin — аналог
+    // assignTeamByName, но на уровне конкретного человека, а не команды.
+    // В отличие от Team#name, Agent#name Chatwoot не приводит к нижнему
+    // регистру принудительно, поэтому сравниваем без учёта регистра тут же.
+    async assignAgentByName(conversationId, agentIdentifier) {
+      if (!agentsCache) {
+        agentsCache = await this.listAgents();
+      }
+      const needle = agentIdentifier.trim().toLowerCase();
+      const agent = agentsCache.find(
+        a => a.name.trim().toLowerCase() === needle || a.email?.trim().toLowerCase() === needle
+      );
+      if (!agent) {
+        console.warn(
+          `[chatwootClient] агент "${agentIdentifier}" не найден в Chatwoot — ` +
+            'проверьте имя/email в Settings → Agents.'
+        );
+        return null;
+      }
+      return this.assignAgent(conversationId, agent.id);
     },
 
     // Список диалогов (все статусы), постранично — для дашборда.

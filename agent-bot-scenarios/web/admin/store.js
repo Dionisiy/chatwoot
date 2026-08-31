@@ -16,6 +16,7 @@ const PAD = 40;
 export const state = reactive({
   flows: {},
   teamNames: [],
+  agentNames: [],
   selectedId: null,
   loading: true,
   loadError: null,
@@ -44,13 +45,15 @@ export async function loadAll() {
     // абсолютный путь вида "/admin/api/flows" уходит мимо прокси на корень
     // домена. Резолвится корректно только потому, что сервер отдаёт эту
     // страницу исключительно с "/" на конце (редиректит бы иначе).
-    const [flowsRes, teamsRes] = await Promise.all([
+    const [flowsRes, teamsRes, agentsRes] = await Promise.all([
       fetch('api/flows'),
       fetch('api/teams'),
+      fetch('api/agents'),
     ]);
     if (!flowsRes.ok) throw new Error(`GET api/flows: ${flowsRes.status}`);
     state.flows = await flowsRes.json();
     state.teamNames = teamsRes.ok ? await teamsRes.json() : [];
+    state.agentNames = agentsRes.ok ? await agentsRes.json() : [];
   } catch (err) {
     state.loadError = err.message;
   } finally {
@@ -190,6 +193,7 @@ function defaultsForType(type, id) {
   if (type === 'submit') {
     base.message = 'Ваша заявка создана, ожидайте решения';
     base.group = '';
+    base.assignee = '';
   }
   return base;
 }
