@@ -15,6 +15,7 @@ import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
 import { markCallDismissed } from 'dashboard/helper/voice';
 import { VOICE_CALL_DIRECTION } from 'dashboard/components-next/message/constants';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import wootConstants from 'dashboard/constants/globals';
 
 const { isImpersonating } = useImpersonation();
 const UNREAD_COUNTS_REFETCH_THROTTLE_MS = 5000;
@@ -142,8 +143,25 @@ class ActionCableConnector extends BaseActionCableConnector {
   onReload = () => window.location.reload();
 
   onStatusChange = data => {
+    this.notifyOnBotHandoff(data);
     this.app.$store.dispatch('updateConversation', data);
     this.fetchConversationStats();
+  };
+
+  // См. DashboardAudioNotificationHelper#onConversationHandoff — единственный
+  // звук по всему боту играет именно тут, на переходе Pending → Open, а не на
+  // message.created (там заявку бота намеренно не озвучивают, пока идёт
+  // опрос). Сверяем со СТАРЫМ статусом из стора — dispatch ниже его перезапишет,
+  // поэтому важно проверить и вызвать помощник ДО dispatch, а не после.
+  notifyOnBotHandoff = data => {
+    const previousConversation = this.app.$store.getters.getConversationById(
+      data.id
+    );
+    const wasPending =
+      previousConversation?.status === wootConstants.STATUS_TYPE.PENDING;
+    if (wasPending && data.status === wootConstants.STATUS_TYPE.OPEN) {
+      DashboardAudioNotificationHelper.onConversationHandoff(data);
+    }
   };
 
   onConversationUpdated = data => {

@@ -139,16 +139,14 @@ export class DashboardAudioNotificationHelper {
     this.resetRecurringTimer();
   };
 
-  shouldNotifyOnMessage = message => {
+  // Общая матрица решений audioAlertType × (назначен мне/не назначен) —
+  // используется и для обычных сообщений (shouldNotifyOnMessage), и для
+  // хендофа бот→агент (onConversationHandoff), где нет объекта message,
+  // только сам диалог.
+  shouldNotifyForAssignment = (assignedToMe, isUnassigned) => {
     const { audioAlertType } = this.notificationConfig;
     if (audioAlertType.includes('none')) return false;
     if (audioAlertType.includes('all')) return true;
-
-    const assignedToMe = isConversationAssignedToMe(
-      message,
-      this.currentUser.id
-    );
-    const isUnassigned = isConversationUnassigned(message);
 
     const shouldPlayAudio = [];
 
@@ -166,6 +164,15 @@ export class DashboardAudioNotificationHelper {
     }
 
     return shouldPlayAudio.some(Boolean);
+  };
+
+  shouldNotifyOnMessage = message => {
+    const assignedToMe = isConversationAssignedToMe(
+      message,
+      this.currentUser.id
+    );
+    const isUnassigned = isConversationUnassigned(message);
+    return this.shouldNotifyForAssignment(assignedToMe, isUnassigned);
   };
 
   onNewMessage = message => {
@@ -203,6 +210,47 @@ export class DashboardAudioNotificationHelper {
       }
 
       // If the user has disabled alerts when active on the dashboard, the dismiss the alert
+      if (this.notificationConfig.playAlertOnlyWhenHidden) {
+        return;
+      }
+    }
+
+    this.playAudioAlert();
+    showBadgeOnFavicon();
+    this.playAudioEvery30Seconds();
+  };
+
+  // Заявки от бота всё диалоговое время (сбор ФИО/проекта/описания и т.п.)
+  // висят в статусе Pending — onNewMessage их намеренно не озвучивает (см.
+  // isMessageFromPendingConversation), иначе звук дёргался бы на каждый шаг
+  // бот-опроса. Из-за этого не было НИ ОДНОГО звука по всему пути бота:
+  // сообщения молчат, пока Pending, а к моменту, когда сообщение наконец не
+  // Pending, оно уже не "новое" — агент физически не мог узнать о новой
+  // заявке по звуку. Единственный точный момент появления готовой заявки для
+  // агента — переход Pending → Open (submit делает это одним вызовом
+  // setStatus('open'), см. engine.js), поэтому слушаем именно
+  // conversation.status_changed, а не message.created.
+  onConversationHandoff = conversation => {
+    if (!this.store.hasConversationPermission(this.currentUser)) {
+      return;
+    }
+
+    const assigneeId = conversation?.meta?.assignee?.id;
+    const assignedToMe = assigneeId === this.currentUser.id;
+    const isUnassigned = !assigneeId;
+    if (!this.shouldNotifyForAssignment(assignedToMe, isUnassigned)) {
+      return;
+    }
+
+    if (WindowVisibilityHelper.isWindowVisible()) {
+      // Агент уже смотрит именно в этот диалог — не пугать его звуком.
+      if (
+        this.store.isMessageFromCurrentConversation({
+          conversation_id: conversation.id,
+        })
+      ) {
+        return;
+      }
       if (this.notificationConfig.playAlertOnlyWhenHidden) {
         return;
       }
