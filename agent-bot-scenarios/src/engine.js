@@ -389,7 +389,7 @@ async function applyStudentSelection(
     const clientUrl = slideeduClientUrl(student.id);
     // bumess_url приходит прямо от Laravel (ChatIntegrationController#
     // activeStudentsFor) уже полностью готовой ссылкой — {env.main_url}/
-    // bumess/chats/{clients.remote_id}, домен там зависит от env клиента
+    // bumess/customer/{clients.remote_id}/chat, домен там зависит от env клиента
     // (Promova/Govorika/Poland — разные хосты), поэтому в отличие от
     // slideedu_client_url бот его не собирает сам, а только пробрасывает
     // как есть. null, если у клиента ещё нет remote_id в CRM.
