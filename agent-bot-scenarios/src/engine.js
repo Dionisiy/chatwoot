@@ -227,19 +227,21 @@ async function renderNode(client, conversationId, nodeId, state) {
   }
 
   if (node.type === 'end') {
-    // Терминальный узел без тикета — например, "обратитесь к куратору".
-    await client.sendText(conversationId, node.text);
-    // Без этого беседа осталась бы висеть в Pending на боте (см.
+    // Терминальный узел без номера заявки/команды/метки (в отличие от
+    // submit) — например, "обратитесь к куратору". Текст отправлен целиком,
+    // но статус явно переводим в Open, а не оставляем в Pending: без этого
+    // беседа осталась бы висеть в Pending на боте навсегда (см.
     // Conversation#set_active_bot_conversation в основном Chatwoot-репо —
     // так помечается ЛЮБАЯ новая беседа в инбоксе с активным ботом,
-    // независимо от того, дойдёт ли сценарий до submit). Резолвим явно,
-    // чтобы такие обращения не копились в очереди как непросмотренные —
-    // в отличие от submit, тут это не "тикет для агента", а разовое
-    // текстовое уведомление, ответ по нему уже дан целиком.
+    // независимо от того, дойдёт ли сценарий до submit), и не видна агенту
+    // в дефолтном фильтре "Открытые". Open, а не Resolved: агент должен
+    // видеть обращение в очереди и сам решать, закрывать его или нет —
+    // резолвить его втихую от лица бота не нужно.
     try {
-      await client.setStatus(conversationId, 'resolved');
+      await client.sendText(conversationId, node.text);
+      await client.setStatus(conversationId, 'open');
     } catch (err) {
-      console.error('[engine] setStatus(resolved) failed:', err.message);
+      console.error('[engine] end-node handling failed:', err.message);
     }
     store.clear(conversationId);
     return;
