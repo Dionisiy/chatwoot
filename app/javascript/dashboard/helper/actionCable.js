@@ -105,10 +105,15 @@ class ActionCableConnector extends BaseActionCableConnector {
     }
   };
 
+  // Отдельное событие от смены статуса: переназначение оператора БЕЗ
+  // изменения статуса (например ручной reassign через API/UI) само по себе
+  // не проходит через onStatusChange, поэтому раньше никогда не проигрывало
+  // звук, даже если заявку назначили именно на текущего пользователя.
   onAssigneeChanged = payload => {
     const { id } = payload;
     if (id) {
       this.app.$store.dispatch('updateConversation', payload);
+      DashboardAudioNotificationHelper.onConversationHandoff(payload);
     }
     this.fetchConversationStats();
   };
