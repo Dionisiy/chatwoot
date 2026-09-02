@@ -228,18 +228,18 @@ async function renderNode(client, conversationId, nodeId, state) {
 
   if (node.type === 'end') {
     // Терминальный узел без номера заявки/команды/метки (в отличие от
-    // submit) — например, "обратитесь к куратору". Текст отправлен целиком,
-    // но статус явно переводим в Open, а не оставляем в Pending: без этого
-    // беседа осталась бы висеть в Pending на боте навсегда (см.
-    // Conversation#set_active_bot_conversation в основном Chatwoot-репо —
-    // так помечается ЛЮБАЯ новая беседа в инбоксе с активным ботом,
-    // независимо от того, дойдёт ли сценарий до submit), и не видна агенту
-    // в дефолтном фильтре "Открытые". Open, а не Resolved: агент должен
-    // видеть обращение в очереди и сам решать, закрывать его или нет —
-    // резолвить его втихую от лица бота не нужно.
+    // submit) — сейчас это ровно 2 узла, оба в ветке "Запись на
+    // консультацию" (consult_curator/consult_calendar): разовый текстовый
+    // ответ ("обратитесь к куратору"/ссылка на календарь), не тикет для
+    // агента. Резолвим явно: без этого беседа осталась бы висеть в Pending
+    // на боте навсегда (см. Conversation#set_active_bot_conversation в
+    // основном Chatwoot-репо — так помечается ЛЮБАЯ новая беседа в инбоксе
+    // с активным ботом, независимо от того, дойдёт ли сценарий до submit),
+    // а в Open эта категория заявок должна закрываться сама, а не висеть
+    // "в работе" — ответ по ней уже дан целиком.
     try {
       await client.sendText(conversationId, node.text);
-      await client.setStatus(conversationId, 'open');
+      await client.setStatus(conversationId, 'resolved');
     } catch (err) {
       console.error('[engine] end-node handling failed:', err.message);
     }
