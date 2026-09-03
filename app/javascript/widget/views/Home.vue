@@ -90,7 +90,12 @@ export default {
         class="flex items-center justify-center flex-1 gap-2 py-3 text-sm font-medium rounded-xl outline outline-1 outline-n-container bg-n-background dark:bg-n-solid-2 text-n-slate-12"
         @click="startNewConversation"
       >
-        <FluentIcon icon="chat-outline" size="18" />
+        <!-- Имя иконки БЕЗ суффикса -outline: Icon.vue сам добавляет `-${type}`
+             (type по умолчанию 'outline'), поэтому "chat-outline" превращалось
+             в поиск ключа chat-outline-outline, которого в icons.json нет.
+             Результат — undefined в pathSource и падение рендера кнопки
+             (TypeError: reading 'constructor'), иконка не отрисовывалась. -->
+        <FluentIcon icon="chat" size="18" />
         {{ $t('START_ANOTHER_CONVERSATION') }}
       </button>
     </div>
