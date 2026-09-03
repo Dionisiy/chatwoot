@@ -146,8 +146,8 @@ attribute `type`, список: Slideedu, Logo-chat, Календарь лого
 Теперь `engine.js#startFlow` перед показом стартового узла спрашивает у
 Chatwoot (`GET /conversations/:id`, `custom_attributes.type` — это именно
 `custom_attributes`, НЕ `additional_attributes`, см. комментарий у
-`getConversationCategory` в `chatwootClient.js`, там же объяснение, почему их
-легко перепутать) выбранную категорию и открывает СВОЙ узел для каждой:
+`getConversation` в `chatwootClient.js`, там же объяснение, почему их легко
+перепутать) выбранную категорию и открывает СВОЙ узел для каждой:
 
 - "Финансовые вопросы" → `main_menu` (исходное финансовое дерево);
 - "Календарь логопеда" → `calendar_intro` (ID / проект / описание проблемы);

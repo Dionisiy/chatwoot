@@ -93,6 +93,17 @@ function freshState() {
   return { nodeId: 'main_menu', formData: {}, history: [] };
 }
 
+// Незавершённые запросы списка учеников в SlideEdu, по conversationId.
+// Держим ОТДЕЛЬНО от state: state уходит в store, который по замыслу
+// (см. store.js) заменяется на Redis — промис туда не сериализуется.
+// Запись живёт до узла student_select (где результат забирают) или до конца
+// сценария (clearPendingStudents на end/submit).
+const pendingStudents = new Map();
+
+function clearPendingStudents(conversationId) {
+  pendingStudents.delete(conversationId);
+}
+
 async function renderNode(client, conversationId, nodeId, state) {
   const flows = getFlows();
   const node = flows[nodeId] || flows.main_menu;
@@ -139,6 +150,19 @@ async function renderNode(client, conversationId, nodeId, state) {
       // ввода ФИО/ID: нельзя опечататься, и оба поля (текущее имя-поле +
       // client_id) заполняются разом, минуя следующий вопрос "Укажите ID
       // клиента" — см. applyStudentSelection.
+      // Запрос в SlideEdu стартовал ещё в startFlow и шёл параллельно с
+      // предыдущими сообщениями сценария — здесь просто забираем результат
+      // (обычно он уже готов) и кладём в state, чтобы при повторном показе
+      // того же вопроса не ждать снова.
+      const pending = pendingStudents.get(conversationId);
+      if (!state.contactAttributes?.students && pending) {
+        const fetched = await pending;
+        clearPendingStudents(conversationId);
+        if (fetched.length) {
+          state.contactAttributes = state.contactAttributes || {};
+          state.contactAttributes.students = fetched;
+        }
+      }
       const students = state.contactAttributes?.students;
       if (Array.isArray(students) && students.length) {
         // value ДОЛЖЕН быть id, а не имя: sendMenu отправляет в Chatwoot
@@ -243,6 +267,7 @@ async function renderNode(client, conversationId, nodeId, state) {
     } catch (err) {
       console.error('[engine] end-node handling failed:', err.message);
     }
+    clearPendingStudents(conversationId);
     store.clear(conversationId);
     return;
   }
@@ -312,29 +337,32 @@ async function renderNode(client, conversationId, nodeId, state) {
     // state (formData/history/contactAttributes/students больше не нужны —
     // сценарий окончен), чтобы не копить в памяти процесса данные завершённых
     // тикетов без необходимости.
+    clearPendingStudents(conversationId);
     store.set(conversationId, { nodeId: DONE_ID });
   }
 }
 
 async function startFlow(client, conversationId) {
-  let category = null;
+  // Один запрос вместо трёх: категория, custom-атрибуты контакта
+  // (project/languages — по ним renderNode автоматически пропускает
+  // select-вопросы с уже известным ответом) и email контакта — это всё поля
+  // одного и того же ответа GET /conversations/:id.
+  let conversation = null;
   try {
-    category = await client.getConversationCategory(conversationId);
+    conversation = await client.getConversation(conversationId);
   } catch (err) {
-    console.error('[engine] getConversationCategory failed:', err.message);
+    console.error('[engine] getConversation failed:', err.message);
   }
 
-  // Custom-атрибуты контакта (project/languages из SlideEdu, см.
-  // chatwootClient.js#getContactCustomAttributes) — забираем один раз в
-  // начале диалога и кладём в state, чтобы renderNode мог автоматически
-  // пропускать select-вопросы с уже известным ответом (например
-  // calendar_project), не дёргая API заново на каждом шаге.
-  let contactAttributes = {};
-  try {
-    contactAttributes = await client.getContactCustomAttributes(conversationId);
-  } catch (err) {
-    console.error('[engine] getContactCustomAttributes failed:', err.message);
-  }
+  const category = conversation?.custom_attributes?.type || null;
+  const contactAttributes = conversation?.meta?.sender?.custom_attributes || {};
+  const email = conversation?.meta?.sender?.email || null;
+
+  // Категория не задана — старое поведение по умолчанию (main_menu).
+  // Категория задана, но для неё нет ветки в CATEGORY_ENTRY_NODE — молчим,
+  // ответ автоматизации Chatwoot остаётся единственным в диалоге.
+  const entryNode = category ? CATEGORY_ENTRY_NODE[category] : 'main_menu';
+  if (!entryNode) return;
 
   // Список учеников — напрямую от SlideEdu по email контакта (см.
   // slideeduClient.js), а НЕ через custom_attributes.students, которые
@@ -342,22 +370,21 @@ async function startFlow(client, conversationId) {
   // работает независимо от отдельного (недоступного нам) репозитория
   // фронтенда — единственное, что для неё нужно, уже и так есть: email
   // контакта, который Chatwoot получает при обычном логине через виджет.
+  //
+  // Запрос НЕ ждём здесь: он ходит по сети во внешний сервис, а нужен только
+  // на узле student_select (вопрос ФИО), а не для первого сообщения. Иначе
+  // недоступный SlideEdu задерживал бы старт сценария на весь таймаут.
+  // Промис забирают в renderNode ровно там, где список реально нужен.
   // Если email не задан, SlideEdu не настроен (см. slideeduClient.js) или
-  // запрос не удался — просто остаёмся без списка (contactAttributes.students
-  // не переопределяем), вопрос ФИО в этом случае — обычный текстовый.
-  try {
-    const email = await client.getContactEmail(conversationId);
-    const students = await slideeduClient.getStudentsByEmail(email);
-    if (students.length) contactAttributes.students = students;
-  } catch (err) {
-    console.error('[engine] getStudentsByEmail failed:', err.message);
-  }
-
-  // Категория не задана — старое поведение по умолчанию (main_menu).
-  // Категория задана, но для неё нет ветки в CATEGORY_ENTRY_NODE — молчим,
-  // ответ автоматизации Chatwoot остаётся единственным в диалоге.
-  const entryNode = category ? CATEGORY_ENTRY_NODE[category] : 'main_menu';
-  if (!entryNode) return;
+  // запрос не удался — остаёмся без списка, вопрос ФИО в этом случае
+  // обычный текстовый.
+  pendingStudents.set(
+    conversationId,
+    slideeduClient.getStudentsByEmail(email).catch(err => {
+      console.error('[engine] getStudentsByEmail failed:', err.message);
+      return [];
+    })
+  );
 
   const state = freshState();
   state.contactAttributes = contactAttributes;

@@ -260,9 +260,19 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
     // AccessTokenAuthHelper::BOT_ACCESSIBLE_ENDPOINTS) — отдельный
     // adminToken тут не нужен. Используется engine.js#startFlow, чтобы не
     // показывать финансовое главное меню в диалогах с другой категорией.
-    async getConversationCategory(conversationId) {
+    // Диалог целиком одним запросом. Всё, что нужно боту на старте сценария,
+    // лежит в этом же ответе:
+    //   custom_attributes.type        — категория из pre-chat формы;
+    //   meta.sender.custom_attributes — атрибуты контакта (project/languages),
+    //                                   которые фронтенд SlideEdu пишет через
+    //                                   setUser/setCustomAttributes;
+    //   meta.sender.email             — email контакта, по нему бот запрашивает
+    //                                   список учеников в SlideEdu.
+    // Раньше на каждое из этих трёх полей шёл отдельный GET этого же URL —
+    // три одинаковых запроса подряд на старте каждой заявки (см. startFlow).
+    async getConversation(conversationId) {
       const { data } = await http.get(`/conversations/${conversationId}`);
-      return data.custom_attributes?.type || null;
+      return data;
     },
 
     // Записать/дополнить custom_attributes ДИАЛОГА (не контакта) — например
@@ -271,36 +281,13 @@ function createChatwootClient({ baseUrl, accountId, token, adminToken }) {
     // него этот эндпоинт ЗАМЕНЯЕТ весь custom_attributes целиком (см.
     // ConversationCustomAttributesConcern#custom_attributes в основном
     // Chatwoot-репо) и стёр бы уже проставленную категорию (custom_attributes.type,
-    // см. getConversationCategory) — с merge:true он оставляет остальные
+    // см. getConversation) — с merge:true он оставляет остальные
     // ключи как есть и обновляет только переданные.
     async setConversationCustomAttributes(conversationId, attributes) {
       return http.post(`/conversations/${conversationId}/custom_attributes`, {
         custom_attributes: attributes,
         merge: true,
       });
-    },
-
-    // Custom attributes КОНТАКТА (не диалога) — например project/languages,
-    // которые Laravel-бэкенд SlideEdu пишет через widget SDK
-    // (window.$chatwoot.setUser + setCustomAttributes) при логине уже
-    // существующего в SlideEdu пользователя. Тот же эндпоинт, что и у
-    // getConversationCategory, но контакт лежит в meta.sender —
-    // custom_attributes ДИАЛОГА (выше) и custom_attributes КОНТАКТА
-    // (meta.sender) это два разных поля одного ответа, см.
-    // _conversation.json.jbuilder / _contact.json.jbuilder.
-    async getContactCustomAttributes(conversationId) {
-      const { data } = await http.get(`/conversations/${conversationId}`);
-      return data.meta?.sender?.custom_attributes || {};
-    },
-
-    // Email контакта — нужен, чтобы бот мог сам спросить SlideEdu про
-    // учеников этого учителя напрямую (см. slideeduClient.js), не дожидаясь
-    // правок на стороне фронтенда SlideEdu. Email в Chatwoot уже есть из
-    // штатного identity-потока (фронтенд передаёт его в setUser() при
-    // логине) — этот метод просто читает его обратно.
-    async getContactEmail(conversationId) {
-      const { data } = await http.get(`/conversations/${conversationId}`);
-      return data.meta?.sender?.email || null;
     },
 
     // Агрегированная статистика ответов/решений — используем родные отчёты
