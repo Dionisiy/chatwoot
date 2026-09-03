@@ -29,12 +29,25 @@ export default {
 
   computed: {
     pathSource() {
-      // To support icons with multiple paths
-      const path = this.icons[`${this.icon}-${this.type}`];
-      if (path.constructor === Array) {
-        return path;
+      const key = `${this.icon}-${this.type}`;
+      const path = this.icons[key];
+
+      // Неизвестное имя иконки — это опечатка в коде, а не состояние
+      // продакшена. Раньше здесь было `path.constructor === Array`, и на
+      // отсутствующем ключе падал рендер ВСЕГО компонента-владельца: например,
+      // из-за icon="chat-outline" (ключ искался как chat-outline-outline)
+      // у кнопки "Начать новую заявку" в виджете пропадала не только иконка,
+      // а в консоль на каждой загрузке летел TypeError. Теперь молча не
+      // рисуем иконку, но громко пишем в консоль — чтобы опечатку заметили,
+      // а интерфейс при этом остался рабочим.
+      if (!path) {
+        // eslint-disable-next-line no-console
+        console.warn(`[FluentIcon] неизвестная иконка: ${key}`);
+        return [];
       }
-      return [path];
+
+      // Иконка может состоять из нескольких path
+      return Array.isArray(path) ? path : [path];
     },
   },
 };
