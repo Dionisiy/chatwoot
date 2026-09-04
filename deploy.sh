@@ -49,6 +49,18 @@ bundle exec rails assets:clobber
 echo "==> assets:precompile"
 bundle exec rails assets:precompile
 
+# Предсжатие ассетов для nginx (gzip_static on): жмём один раз здесь
+# максимальным уровнем вместо того, чтобы сжимать один и тот же файл на
+# каждый запрос. Даёт меньший размер, чем сжатие на лету (gzip_comp_level 5),
+# и снимает нагрузку на CPU. Оригиналы остаются на месте: если .gz нет или
+# клиент не поддерживает сжатие, nginx отдаст обычный файл.
+# -k сохраняет исходник, -f перезаписывает .gz от прошлой сборки.
+echo "==> pre-compress assets (gzip -9)"
+find public/vite public/assets -type f \
+  \( -name '*.js' -o -name '*.css' -o -name '*.svg' -o -name '*.json' \) \
+  -size +1k -print0 | xargs -0 -r -P 2 gzip -9 -k -f
+echo "    сжато файлов: $(find public/vite public/assets -name '*.gz' -type f | wc -l)"
+
 echo "==> restart chatwoot-web / chatwoot-worker"
 sudo systemctl restart chatwoot-web.1.service chatwoot-worker.1.service
 
