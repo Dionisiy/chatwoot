@@ -11,6 +11,8 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { useWindowSize } from '@vueuse/core';
 
 import wootConstants from 'dashboard/constants/globals';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { useConfig } from 'dashboard/composables/useConfig';
 import { isUpgradePageBypassRoute } from 'dashboard/helper/routeHelpers';
 
 const CommandBar = defineAsyncComponent(
@@ -21,8 +23,16 @@ const FloatingCallWidget = defineAsyncComponent(
   () => import('dashboard/components-next/call/FloatingCallWidget.vue')
 );
 
-import CopilotLauncher from 'dashboard/components-next/copilot/CopilotLauncher.vue';
-import CopilotContainer from 'dashboard/components/copilot/CopilotContainer.vue';
+// Copilot — часть платного Captain. Компоненты и так ничего не рисуют при
+// выключенной фиче, но при статическом импорте всё равно попадали в
+// критический чанк дашборда. Грузим лениво (как CommandBar/FloatingCallWidget
+// выше) и монтируем только когда Captain реально включён — см. isCaptainEnabled.
+const CopilotLauncher = defineAsyncComponent(
+  () => import('dashboard/components-next/copilot/CopilotLauncher.vue')
+);
+const CopilotContainer = defineAsyncComponent(
+  () => import('dashboard/components/copilot/CopilotContainer.vue')
+);
 
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
 import { useCallsStore } from 'dashboard/stores/calls';
@@ -45,8 +55,10 @@ export default {
     const { accountId } = useAccount();
     const { width: windowWidth } = useWindowSize();
     const callsStore = useCallsStore();
+    const { isEnterprise } = useConfig();
 
     return {
+      isEnterprise,
       uiSettings,
       updateUISettings,
       accountId,
@@ -65,6 +77,19 @@ export default {
     };
   },
   computed: {
+    // Точка, где решается, подгружать ли чанк Copilot вообще. Условие то же,
+    // что внутри CopilotContainer (см. shouldShowCopilotPanel): без
+    // enterprise-сборки и без включённой фичи Captain панель всё равно
+    // не отрисуется, так что и качать её код незачем.
+    isCaptainEnabled() {
+      return Boolean(
+        this.isEnterprise &&
+          this.$store.getters['accounts/isFeatureEnabledonAccount'](
+            this.accountId,
+            FEATURE_FLAGS.CAPTAIN
+          )
+      );
+    },
     isSmallScreen() {
       return this.windowWidth < wootConstants.SMALL_SCREEN_BREAKPOINT;
     },
@@ -154,12 +179,12 @@ export default {
       </UpgradePage>
       <template v-if="!showUpgradePage">
         <router-view />
-        <CopilotLauncher />
+        <CopilotLauncher v-if="isCaptainEnabled" />
         <MobileSidebarLauncher
           :is-mobile-sidebar-open="isMobileSidebarOpen"
           @toggle="toggleMobileSidebar"
         />
-        <CopilotContainer />
+        <CopilotContainer v-if="isCaptainEnabled" />
         <FloatingCallWidget v-if="hasActiveCall || hasIncomingCall" />
       </template>
       <CommandBar :is-paywalled="isAccountPaywalled" />
