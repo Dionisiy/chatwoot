@@ -7,8 +7,15 @@ class ConversationPolicy < ApplicationPolicy
     administrator?
   end
 
+  # Ограничение по меткам проверяется до роли: администратору его тоже можно
+  # выставить, и тогда чужая категория закрыта и для него (см.
+  # Conversations::PermissionFilterService#perform — там та же логика для
+  # списков). Боту метки не выставляются в принципе, он проходит сразу.
   def show?
-    administrator? || agent_bot? || (agent_can_view_conversation? && label_access?)
+    return true if agent_bot?
+    return false unless label_access?
+
+    administrator? || agent_can_view_conversation?
   end
 
   private

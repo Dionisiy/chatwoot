@@ -42,7 +42,7 @@
         },
         "LABEL_ACCESS": {
           "LABEL": "Visible categories",
-          "HINT": "Leave empty to keep seeing every category. Select one or more to limit this agent to those categories only."
+          "HINT": "Leave empty to keep seeing every category. Select one or more to limit this user to those categories only. Applies to administrators too."
         },
         "SUBMIT": "Add Agent"
       },
@@ -88,7 +88,7 @@
         },
         "LABEL_ACCESS": {
           "LABEL": "Visible categories",
-          "HINT": "Leave empty to keep seeing every category. Select one or more to limit this agent to those categories only."
+          "HINT": "Leave empty to keep seeing every category. Select one or more to limit this user to those categories only. Applies to administrators too."
         },
         "SUBMIT": "Edit Agent"
       },

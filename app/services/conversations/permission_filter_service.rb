@@ -8,15 +8,14 @@ class Conversations::PermissionFilterService
     @plan_hint_selective_filter = plan_hint_selective_filter
   end
 
-  # Администраторы ограничению по меткам не подчиняются — так же, как в
-  # ConversationPolicy#show? (administrator? проверяется до label_access?) и в
-  # рассылке realtime-событий. Без этой проверки поведение расходилось:
-  # список админу фильтровался, а открыть ту же заявку по прямой ссылке он
-  # мог. На проде это выстрелило — у администратора с выставленными метками
-  # список выдавал 0 заявок из 80.
+  # Ограничение по меткам не зависит от роли: администратору его тоже можно
+  # выставить (Settings → Agents), и тогда он видит только свои категории.
+  # Роль решает лишь, какие инбоксы/команды доступны в принципе
+  # (role_scoped_conversations); метки режут результат поверх этого. Ровно так
+  # же устроены ConversationPolicy#show? и рассылка realtime-событий — все три
+  # места обязаны отвечать одинаково, иначе список фильтруется, а по прямой
+  # ссылке заявка открывается (уже ловили такое расхождение на проде).
   def perform
-    return role_scoped_conversations if user_role == 'administrator'
-
     apply_label_restriction(role_scoped_conversations)
   end
 
@@ -24,8 +23,8 @@ class Conversations::PermissionFilterService
 
   # Точка, которую переопределяет Enterprise::Conversations::PermissionFilterService
   # (custom roles) — ограничение по меткам (apply_label_restriction) применяется
-  # поверх результата для всех, кроме администраторов (см. perform),
-  # независимо от того, какой веткой сюда пришли.
+  # поверх результата в любом случае, независимо от того, какой веткой сюда
+  # пришли.
   def role_scoped_conversations
     return conversations if user_role == 'administrator'
 

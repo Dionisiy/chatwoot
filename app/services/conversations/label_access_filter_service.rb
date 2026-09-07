@@ -12,13 +12,14 @@ class Conversations::LabelAccessFilterService
   # Считаем через сам сервис, а не повторяя его условия (OR/AND, видимость
   # немаркированных) — по той же причине, что и ConversationPolicy
   # #label_access?: списки, прямой доступ и realtime не должны расходиться.
-  # Администраторы ограничению не подчиняются, см. политику.
+  # Роль здесь не смотрим: ограничение действует на всех, кому его выставили,
+  # включая администраторов.
   def self.restricted_pubsub_tokens(conversation, account:)
     restricted_user_ids = AgentLabel.where(account_id: account.id).distinct.pluck(:user_id)
     return [] if restricted_user_ids.empty?
 
     scope = Conversation.where(id: conversation.id)
-    User.where(id: restricted_user_ids - account.administrators.ids).filter_map do |user|
+    User.where(id: restricted_user_ids).filter_map do |user|
       user.pubsub_token unless new(scope, user: user, account: account).perform.exists?
     end
   end
