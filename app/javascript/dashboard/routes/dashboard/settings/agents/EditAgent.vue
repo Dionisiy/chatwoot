@@ -108,6 +108,16 @@ const selectedRole = computed(() =>
   )
 );
 
+// Администраторы ограничению по меткам не подчиняются (см.
+// ConversationPolicy#show? и PermissionFilterService#perform), поэтому
+// выставленные им «Видимые категории» ни на что не влияют — а в интерфейсе
+// сохранённые галочки выглядят как работающее ограничение. Прячем блок и
+// затираем метки при сохранении, чтобы в базе не оставалось мусора, который
+// «оживёт», если человека потом понизят до оператора.
+const isAdministratorRole = computed(
+  () => selectedRole.value?.name === 'administrator'
+);
+
 const statusList = computed(() => {
   return [
     t('PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.ONLINE'),
@@ -133,7 +143,7 @@ const editAgent = async () => {
       id: props.id,
       name: agentName.value,
       availability: agentAvailability.value,
-      label_ids: selectedLabelIds.value,
+      label_ids: isAdministratorRole.value ? [] : selectedLabelIds.value,
     };
 
     if (selectedRole.value.name.startsWith('custom_')) {
@@ -212,7 +222,7 @@ const resetPassword = async () => {
         </label>
       </div>
 
-      <div v-if="labels.length" class="w-full">
+      <div v-if="labels.length && !isAdministratorRole" class="w-full">
         <label>
           {{ $t('AGENT_MGMT.EDIT.FORM.LABEL_ACCESS.LABEL') }}
         </label>
