@@ -226,7 +226,7 @@ const resetPassword = async () => {
         <label>
           {{ $t('AGENT_MGMT.EDIT.FORM.LABEL_ACCESS.LABEL') }}
         </label>
-        <p class="mt-[-0.75rem] mb-2 text-xs text-n-slate-11">
+        <p class="mb-2 text-xs text-n-slate-11">
           {{ $t('AGENT_MGMT.EDIT.FORM.LABEL_ACCESS.HINT') }}
         </p>
         <div
