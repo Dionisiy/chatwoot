@@ -614,6 +614,33 @@ async function handleTextAnswer(client, conversationId, text) {
   return renderNode(client, conversationId, node.next, state);
 }
 
+// Клиент прислал только файл, без текста (скриншот проблемы, фото документа).
+// Ответом на шаг сценария это не считаем намеренно: шаги, где файл уместен,
+// сами просят приложить его ОТДЕЛЬНЫМ сообщением («опишите проблему... по
+// возможности приложите скриншот»), и если засчитать вложение за ответ, то
+// описание, которое клиент напишет следующим сообщением, уедет в ответ на
+// СЛЕДУЮЩИЙ вопрос. Поэтому просто подтверждаем получение и оставляем
+// сценарий на том же узле. Подтверждение здесь ещё и обязательно
+// технически: пока последнее сообщение в диалоге входящее, виджет держит
+// индикатор «печатает…» (см. ConversationWrap.vue#showStatusIndicator) —
+// любой ответ бота его снимает.
+async function handleAttachmentAnswer(client, conversationId) {
+  const state = store.get(conversationId);
+
+  // Диалог начат с файла, а не с текста — сценарий ещё не запускался.
+  if (!state) {
+    return startFlow(client, conversationId);
+  }
+  // Заявка уже создана и передана агенту — файл увидит человек, бот молчит
+  // (см. DONE_ID). Про `return undefined` — см. handleOptionSelected.
+  if (isDone(state)) return undefined;
+
+  return client.sendText(
+    conversationId,
+    'Файл получен. Чтобы продолжить, ответьте, пожалуйста, на вопрос выше.'
+  );
+}
+
 // Ответ на вопрос с содержимым content_type: 'form' (сейчас — только
 // date-picker, см. renderNode/sendDateQuestion). values — [{ name, value }],
 // как их шлёт AgentMessageBubble.vue#onFormSubmit; value от нативного
@@ -645,5 +672,6 @@ module.exports = {
   startFlow,
   handleOptionSelected,
   handleTextAnswer,
+  handleAttachmentAnswer,
   handleFormSubmitted,
 };

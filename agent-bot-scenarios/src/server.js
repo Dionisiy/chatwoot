@@ -367,6 +367,16 @@ async function handleEvent(payload) {
     if (payload.content) {
       return engine.handleTextAnswer(client, conversationId, payload.content);
     }
+    // Сообщение без текста, но с файлом (клиент просто перетащил скриншот в
+    // виджет). Раньше такое сообщение проваливалось мимо всех веток и бот
+    // молчал; при этом виджет продолжал рисовать «печатает…» —
+    // ConversationWrap.vue#showStatusIndicator показывает индикатор всё
+    // время, пока диалог в статусе pending, а последнее сообщение —
+    // входящее. Клиенту это выглядело как зависание навсегда (снято на
+    // видео 2026-09-06).
+    if (payload.attachments?.length) {
+      return engine.handleAttachmentAnswer(client, conversationId);
+    }
   }
 }
 
