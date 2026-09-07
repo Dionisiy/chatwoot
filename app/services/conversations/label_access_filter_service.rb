@@ -6,6 +6,23 @@
 # умолчанию для всех уже работающих агентов ничего не меняется, фича сугубо
 # opt-in через Settings → Agents.
 class Conversations::LabelAccessFilterService
+  # pubsub-токены агентов, которым этот диалог закрыт ограничением по меткам —
+  # чтобы ActionCableListener не рассылал им realtime-события (иначе фронт
+  # добавляет пришедший диалог в список как есть, в обход фильтра списков).
+  # Считаем через сам сервис, а не повторяя его условия (OR/AND, видимость
+  # немаркированных) — по той же причине, что и ConversationPolicy
+  # #label_access?: списки, прямой доступ и realtime не должны расходиться.
+  # Администраторы ограничению не подчиняются, см. политику.
+  def self.restricted_pubsub_tokens(conversation, account:)
+    restricted_user_ids = AgentLabel.where(account_id: account.id).distinct.pluck(:user_id)
+    return [] if restricted_user_ids.empty?
+
+    scope = Conversation.where(id: conversation.id)
+    User.where(id: restricted_user_ids - account.administrators.ids).filter_map do |user|
+      user.pubsub_token unless new(scope, user: user, account: account).perform.exists?
+    end
+  end
+
   def initialize(conversations, user:, account:)
     @conversations = conversations
     @user = user

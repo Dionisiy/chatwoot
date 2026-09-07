@@ -212,21 +212,8 @@ class ActionCableListener < BaseListener
   # ограничением всплывали чужие категории (счётчики при этом показывали 0:
   # они считаются на бэкенде уже с фильтром). Снято на видео 2026-09-06.
   def conversation_user_tokens(account, conversation)
-    user_tokens(account, conversation.inbox.members) - label_restricted_tokens(account, conversation)
-  end
-
-  # Переиспользуем сервис, а не повторяем его условия (OR/AND, видимость
-  # немаркированных) — ровно по той же причине, что и ConversationPolicy
-  # #label_access?: поведение списков, прямого доступа и realtime не должно
-  # расходиться. Администраторы ограничению не подчиняются (см. политику).
-  def label_restricted_tokens(account, conversation)
-    restricted_user_ids = AgentLabel.where(account_id: account.id).distinct.pluck(:user_id)
-    return [] if restricted_user_ids.empty?
-
-    scope = Conversation.where(id: conversation.id)
-    User.where(id: restricted_user_ids - account.administrators.ids).filter_map do |user|
-      user.pubsub_token unless Conversations::LabelAccessFilterService.new(scope, user: user, account: account).perform.exists?
-    end
+    user_tokens(account, conversation.inbox.members) -
+      Conversations::LabelAccessFilterService.restricted_pubsub_tokens(conversation, account: account)
   end
 
   def contact_tokens(contact_inbox, message)
