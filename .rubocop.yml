@@ -19,6 +19,10 @@ Metrics/ClassLength:
     - 'app/models/message.rb'
     - 'app/models/conversation.rb'
     - 'config/initializers/rack_attack.rb'
+    # Диспетчер realtime-событий: одно событие Chatwoot = один короткий метод,
+    # список событий растёт вместе с апстримом. Дробить класс ради счётчика
+    # строк смысла нет — читаемость от этого только упадёт.
+    - 'app/listeners/action_cable_listener.rb'
 
 Metrics/MethodLength:
   Max: 19
