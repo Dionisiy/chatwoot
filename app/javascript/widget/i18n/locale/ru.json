@@ -170,5 +170,18 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "Ответить:"
+  },
+  "DAY_NAMES_SHORT": {
+    "SUNDAY": "Вс",
+    "MONDAY": "Пн",
+    "TUESDAY": "Вт",
+    "WEDNESDAY": "Ср",
+    "THURSDAY": "Чт",
+    "FRIDAY": "Пт",
+    "SATURDAY": "Сб"
+  },
+  "WORKING_HOURS": {
+    "ALL_DAY": "круглосуточно",
+    "SUMMARY": "График работы: {schedule}"
   }
 }

@@ -170,5 +170,18 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "Replying to:"
+  },
+  "DAY_NAMES_SHORT": {
+    "SUNDAY": "Sun",
+    "MONDAY": "Mon",
+    "TUESDAY": "Tue",
+    "WEDNESDAY": "Wed",
+    "THURSDAY": "Thu",
+    "FRIDAY": "Fri",
+    "SATURDAY": "Sat"
+  },
+  "WORKING_HOURS": {
+    "ALL_DAY": "24 hours",
+    "SUMMARY": "Working hours: {schedule}"
   }
 }

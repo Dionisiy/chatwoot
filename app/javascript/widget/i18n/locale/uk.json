@@ -154,5 +154,18 @@
   },
   "FOOTER_REPLY_TO": {
     "REPLY_TO": "Відповісти:"
+  },
+  "DAY_NAMES_SHORT": {
+    "SUNDAY": "Нд",
+    "MONDAY": "Пн",
+    "TUESDAY": "Вт",
+    "WEDNESDAY": "Ср",
+    "THURSDAY": "Чт",
+    "FRIDAY": "Пт",
+    "SATURDAY": "Сб"
+  },
+  "WORKING_HOURS": {
+    "ALL_DAY": "цілодобово",
+    "SUMMARY": "Графік роботи: {schedule}"
   }
 }
