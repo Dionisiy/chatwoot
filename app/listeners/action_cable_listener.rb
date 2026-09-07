@@ -205,12 +205,8 @@ class ActionCableListener < BaseListener
     (agent_tokens + admin_tokens).uniq
   end
 
-  # Получатели событий конкретного диалога. Ограничение по меткам
-  # (см. Conversations::LabelAccessFilterService) фильтровало только
-  # HTTP-выдачу списков, а realtime уходил всем участникам инбокса — фронт
-  # добавляет пришедший диалог в список как есть, поэтому агенту с
-  # ограничением всплывали чужие категории (счётчики при этом показывали 0:
-  # они считаются на бэкенде уже с фильтром). Снято на видео 2026-09-06.
+  # Получатели событий конкретного диалога: участники инбокса минус те, кому
+  # он закрыт ограничением по меткам (см. restricted_pubsub_tokens).
   def conversation_user_tokens(account, conversation)
     user_tokens(account, conversation.inbox.members) -
       Conversations::LabelAccessFilterService.restricted_pubsub_tokens(conversation, account: account)
