@@ -86,6 +86,7 @@ app.use('/dashboard/assets', express.static(path.join(DIST_DIR, 'assets')));
 // не запрашивали, страница держится на своём собственном CHATWOOT_ADMIN_TOKEN
 // на сервере, а не на личных правах того, кто её открыл.
 app.get('/dashboard/', (_req, res) => {
+  res.set('Cache-Control', 'no-store'); // см. комментарий у /admin/
   res.sendFile(path.join(DIST_DIR, 'dashboard.html'));
 });
 
@@ -187,7 +188,16 @@ async function requireAdminAuth(req, res, next) {
   }
 }
 
+// HTML-оболочку кэшировать нельзя: имена ассетов в ней хэшированные, и именно
+// она — единственное, что связывает браузер с новой сборкой. Пока браузер
+// держит старый admin.html (sendFile отдаёт только ETag, а его на условный
+// запрос браузер отправляет не всегда — из bfcache или при переходе «назад»
+// страница поднимается вообще без обращения к сети), новые кнопки редактора
+// не появляются после деплоя, и выглядит это как «фичу не выкатили».
+// Сами ассеты под /admin/assets кэшировать по-прежнему можно и нужно — они
+// хэшированы по содержимому.
 app.get('/admin/', requireAdminAuth, (_req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(DIST_DIR, 'admin.html'));
 });
 

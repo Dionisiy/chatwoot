@@ -48,8 +48,20 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
   color: #dc2626;
 }
 
+/* Раньше высота считалась как 100vh минус ровно 49px — высота тулбара в одну
+   строку. Теперь тулбар переносится по строкам на узких экранах (см.
+   Toolbar.vue), и жёсткое число уводило бы низ схемы и панели узла за край.
+   Отдаём остаток высоты флексом, чтобы раскладка не зависела от того,
+   сколько строк занял тулбар. */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
 .layout {
   display: flex;
-  height: calc(100vh - 49px);
+  flex: 1;
+  min-height: 0;
 }
 </style>
