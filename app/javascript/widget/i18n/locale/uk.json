@@ -93,7 +93,9 @@
     "CAMPAIGN_HEADER": "Будь ласка, надайте своє ім'я та електронну пошту перед початком бесіди",
     "IS_REQUIRED": "обов'язково",
     "REQUIRED": "Обов'язково",
-    "REGEX_ERROR": "Будь ласка, введіть коректний текст"
+    "REGEX_ERROR": "Будь ласка, введіть коректний текст",
+    "AUTO_MESSAGE_WITH_CATEGORY": "Нове звернення: {category}",
+    "AUTO_MESSAGE": "Нове звернення"
   },
   "FILE_SIZE_LIMIT": "Файл перевищує ліміт вкладення {MAXIMUM_FILE_UPLOAD_SIZE}",
   "CHAT_FORM": {
@@ -167,5 +169,19 @@
   "WORKING_HOURS": {
     "ALL_DAY": "цілодобово",
     "SUMMARY": "Графік роботи: {schedule}"
+  },
+  "START_ANOTHER_CONVERSATION": "Створити нову заявку",
+  "TICKETS_LIST": {
+    "BUTTON_TITLE": "Мої заявки",
+    "EMPTY": "У вас поки немає заявок",
+    "TICKET_NUMBER": "Заявка №{id}",
+    "UNREAD_MAX": "9+",
+    "ALL_CATEGORIES": "Усі",
+    "STATUS": {
+      "OPEN": "Відкрита",
+      "PENDING": "В очікуванні",
+      "RESOLVED": "Закрита",
+      "SNOOZED": "Відкладена"
+    }
   }
 }
