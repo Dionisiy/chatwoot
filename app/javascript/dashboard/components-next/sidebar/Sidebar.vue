@@ -69,6 +69,14 @@ const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
 
+// Редактор сценариев бота живёт вне Vue Router (см. пункт ниже), поэтому
+// обычный механизм прав по meta.permissions к нему не применяется — роль
+// проверяем здесь. Сам /agent-bot/admin/ и так закрыт Basic Auth с личным
+// токеном администратора, но показывать оператору ссылку, которая для него
+// закончится окном пароля, незачем.
+const currentRole = useMapGetter('getCurrentRole');
+const isAdministrator = computed(() => currentRole.value === 'administrator');
+
 const hasAdvancedAssignment = computed(() => {
   return isFeatureEnabledonAccount.value(
     accountId.value,
@@ -905,6 +913,22 @@ const menuItems = computed(() => {
           icon: 'i-lucide-bot',
           to: accountScopedRoute('agent_bots'),
         },
+        ...(isAdministrator.value
+          ? [
+              {
+                // Редактор сценариев SlideEdu (agent-bot-scenarios/web/admin) —
+                // отдельное Node-приложение вне Vue Router, отдаётся тем же
+                // nginx по относительному пути (location /agent-bot/), поэтому
+                // обычная ссылка, не accountScopedRoute — как и дашборд в
+                // разделе «Отчёты».
+                name: 'Settings SlideEdu Scenario Editor',
+                label: t('SIDEBAR.SLIDEEDU_SCENARIO_EDITOR'),
+                icon: 'i-lucide-git-branch',
+                to: '/agent-bot/admin/',
+                external: true,
+              },
+            ]
+          : []),
         {
           name: 'Settings Macros',
           label: t('SIDEBAR.MACROS'),
