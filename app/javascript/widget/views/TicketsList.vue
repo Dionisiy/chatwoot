@@ -5,6 +5,7 @@ import Spinner from 'shared/components/Spinner.vue';
 import { formatUnixDate } from 'shared/helpers/DateHelper';
 import { CONVERSATION_STATUS } from 'shared/constants/messages';
 import { setActiveConversationId } from 'widget/helpers/activeConversation';
+import { translateConfigString } from 'widget/helpers/configTranslations';
 
 export default {
   name: 'TicketsList',
@@ -60,9 +61,17 @@ export default {
         'dd MMM, HH:mm'
       );
     },
+    // Категория хранится в заявке на языке настроек инбокса — показываем её
+    // на языке виджета (см. configTranslations.js). Фильтрация при этом идёт
+    // по исходному значению, а не по подписи.
+    categoryLabel(category) {
+      return translateConfigString(category, this.$i18n.locale);
+    },
     ticketMeta(ticket) {
       const date = this.formattedDate(ticket);
-      return ticket.category ? `${ticket.category} · ${date}` : date;
+      return ticket.category
+        ? `${this.categoryLabel(ticket.category)} · ${date}`
+        : date;
     },
     selectCategory(category) {
       this.selectedCategory = category;
@@ -133,7 +142,7 @@ export default {
         "
         @click="selectCategory(category)"
       >
-        {{ category }}
+        {{ categoryLabel(category) }}
       </button>
     </div>
     <div class="flex flex-col gap-2 p-4">

@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar.vue';
 import Canvas from './components/Canvas.vue';
 import EditPanel from './components/EditPanel.vue';
 import HistoryPanel from './components/HistoryPanel.vue';
+import TranslationsPanel from './components/TranslationsPanel.vue';
 
 onMounted(loadAll);
 
@@ -32,6 +33,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
       <EditPanel />
     </div>
     <HistoryPanel />
+    <TranslationsPanel />
   </template>
 </template>
 

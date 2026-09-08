@@ -4,6 +4,13 @@
 const { getFlows } = require('./flowStore');
 const store = require('./store');
 const { createSlideEduClient } = require('./slideeduClient');
+const {
+  DEFAULT_LOCALE,
+  normalizeLocale,
+  t,
+  ui,
+  matchTextCommand,
+} = require('./i18n');
 
 // Один клиент на процесс, как getFlows()/store — конфигурация не меняется
 // на лету. Если SLIDEEDU_BASE_URL/CHAT_BOT_SHARED_SECRET не заданы, клиент
@@ -73,20 +80,30 @@ const CATEGORY_ENTRY_NODE = {
 // не пропускает ввод без @ и точки в домене (см. README).
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function withNav(options, { showBack }) {
+function withNav(options, { showBack, locale }) {
   const nav = [];
-  if (showBack) nav.push({ id: BACK_ID, title: '« Назад', value: BACK_ID });
-  nav.push({ id: MENU_ID, title: '🏠 Главное меню', value: MENU_ID });
+  if (showBack)
+    nav.push({ id: BACK_ID, title: ui('BACK', locale), value: BACK_ID });
+  nav.push({ id: MENU_ID, title: ui('MENU', locale), value: MENU_ID });
   return [
-    ...options.map(o => ({ id: o.id, title: o.title, value: o.id })),
+    ...options.map(o => ({ id: o.id, title: t(o.title, locale), value: o.id })),
     ...nav,
   ];
 }
 
-function withOptionalSkip(options, node) {
-  return node.optional
-    ? [...options, { id: SKIP_ID, title: 'Пропустить', value: SKIP_ID }]
-    : options;
+function skipOption(locale) {
+  return { id: SKIP_ID, title: ui('SKIP', locale), value: SKIP_ID };
+}
+
+function withOptionalSkip(options, node, locale) {
+  return node.optional ? [...options, skipOption(locale)] : options;
+}
+
+// Язык диалога живёт в state и проставляется один раз в startFlow (см.
+// resolveLocale). Здесь — только безопасное чтение: state мог быть создан
+// старой версией процесса, когда поля ещё не было.
+function localeOf(state) {
+  return normalizeLocale(state?.locale) || DEFAULT_LOCALE;
 }
 
 function freshState() {
@@ -108,12 +125,13 @@ async function renderNode(client, conversationId, nodeId, state) {
   const flows = getFlows();
   const node = flows[nodeId] || flows.main_menu;
   const resolvedId = flows[nodeId] ? nodeId : 'main_menu';
+  const locale = localeOf(state);
 
   if (node.type === 'menu') {
     await client.sendMenu(
       conversationId,
-      node.title,
-      withNav(node.options, { showBack: state.history.length > 0 })
+      t(node.title, locale),
+      withNav(node.options, { showBack: state.history.length > 0, locale })
     );
     state.nodeId = resolvedId;
     store.set(conversationId, state);
@@ -137,10 +155,16 @@ async function renderNode(client, conversationId, nodeId, state) {
       }
       // Freshchat рендерит такие поля (валюта и т.п.) как quick-reply меню,
       // не как свободный ввод текста.
+      // Подпись кнопки переводится (field.optionTitles), значение — нет:
+      // именно оно уходит в formData и в заявку (см. flowStore#checkOptionTitles).
       await client.sendMenu(
         conversationId,
-        node.prompt,
-        node.field.options.map(o => ({ id: o, title: o, value: o }))
+        t(node.prompt, locale),
+        node.field.options.map(o => ({
+          id: o,
+          title: t(node.field.optionTitles?.[o] ?? o, locale),
+          value: o,
+        }))
       );
     } else if (node.field.type === 'student_select') {
       // Список активных учеников конкретного учителя (Client из SlideEdu,
@@ -176,24 +200,25 @@ async function renderNode(client, conversationId, nodeId, state) {
         // handleOptionSelected напрямую с готовым id, минуя этот баг).
         await client.sendMenu(
           conversationId,
-          node.prompt,
+          t(node.prompt, locale),
           withOptionalSkip(
             students.map(s => ({
               id: String(s.id),
               title: s.name,
               value: String(s.id),
             })),
-            node
+            node,
+            locale
           )
         );
       } else if (node.optional) {
         // Список недоступен (контакт не идентифицирован через SlideEdu) —
         // прежнее поведение: обычный текстовый вопрос с кнопкой "Пропустить".
-        await client.sendMenu(conversationId, node.prompt, [
-          { id: SKIP_ID, title: 'Пропустить', value: SKIP_ID },
+        await client.sendMenu(conversationId, t(node.prompt, locale), [
+          skipOption(locale),
         ]);
       } else {
-        await client.sendText(conversationId, node.prompt);
+        await client.sendText(conversationId, t(node.prompt, locale));
       }
     } else if (node.optional) {
       // Необязательный текстовый вопрос (например, "Имя клиента", "ID
@@ -204,24 +229,24 @@ async function renderNode(client, conversationId, nodeId, state) {
       // email-валидацию (input_email) с кнопками Chatwoot совмещать не даёт,
       // поэтому optional-поля с field.type: email этим путём не поддержаны —
       // пока не требовалось.
-      await client.sendMenu(conversationId, node.prompt, [
-        { id: SKIP_ID, title: 'Пропустить', value: SKIP_ID },
+      await client.sendMenu(conversationId, t(node.prompt, locale), [
+        skipOption(locale),
       ]);
     } else if (node.field.type === 'email') {
       // content_type: input_email — нативная валидация Chatwoot на виджете,
       // плюс движок ещё раз проверяет формат при получении ответа.
-      await client.sendEmailQuestion(conversationId, node.prompt);
+      await client.sendEmailQuestion(conversationId, t(node.prompt, locale));
     } else if (node.field.type === 'date') {
       // Нативный date-picker (content_type: 'form') — ответ приходит через
       // message_updated и обрабатывается handleFormSubmitted, не
       // handleTextAnswer (см. chatwootClient.js#sendDateQuestion).
       await client.sendDateQuestion(
         conversationId,
-        node.prompt,
+        t(node.prompt, locale),
         node.field.name
       );
     } else {
-      await client.sendText(conversationId, node.prompt);
+      await client.sendText(conversationId, t(node.prompt, locale));
     }
     state.nodeId = resolvedId;
     store.set(conversationId, state);
@@ -229,7 +254,7 @@ async function renderNode(client, conversationId, nodeId, state) {
   }
 
   if (node.type === 'message') {
-    await client.sendText(conversationId, node.text);
+    await client.sendText(conversationId, t(node.text, locale));
     state.history.push(resolvedId);
     await renderNode(client, conversationId, node.next, state);
     return;
@@ -238,12 +263,13 @@ async function renderNode(client, conversationId, nodeId, state) {
   if (node.type === 'link') {
     // Информационный терминальный узел (например, ссылка на календарь) —
     // без создания заявки, только текст + опциональная ссылка + навигация.
+    const body = t(node.text, locale);
     const text = node.url
-      ? `${node.text}\n${node.linkTitle}: ${node.url}`
-      : node.text;
+      ? `${body}\n${t(node.linkTitle, locale)}: ${node.url}`
+      : body;
     await client.sendMenu(conversationId, text, [
-      { id: MENU_ID, title: '🏠 Главное меню', value: MENU_ID },
-      { id: BACK_ID, title: '« Назад', value: BACK_ID },
+      { id: MENU_ID, title: ui('MENU', locale), value: MENU_ID },
+      { id: BACK_ID, title: ui('BACK', locale), value: BACK_ID },
     ]);
     state.nodeId = resolvedId;
     store.set(conversationId, state);
@@ -262,7 +288,7 @@ async function renderNode(client, conversationId, nodeId, state) {
     // а в Open эта категория заявок должна закрываться сама, а не висеть
     // "в работе" — ответ по ней уже дан целиком.
     try {
-      await client.sendText(conversationId, node.text);
+      await client.sendText(conversationId, t(node.text, locale));
       await client.setStatus(conversationId, 'resolved');
     } catch (err) {
       console.error('[engine] end-node handling failed:', err.message);
@@ -281,7 +307,7 @@ async function renderNode(client, conversationId, nodeId, state) {
     // потеряется.
     await client.sendText(
       conversationId,
-      `${node.message}\nНомер заявки: ${conversationId}`
+      `${t(node.message, locale)}\n${ui('TICKET_NUMBER', locale)}: ${conversationId}`
     );
     // group (команда) и label (метка/подкатегория) независимы друг от друга —
     // например, у веток финансов одновременно есть и распределение по
@@ -342,6 +368,28 @@ async function renderNode(client, conversationId, nodeId, state) {
   }
 }
 
+// На каком языке боту говорить в этом диалоге.
+//
+// 1) custom_attributes.locale диалога — язык, выбранный клиентом прямо в
+//    виджете (переключатель Рус/Укр/Eng, см. LocaleSwitcher.vue). Виджет
+//    кладёт его туда тем же путём, что и категорию из pre-chat формы.
+// 2) additional_attributes.browser_language — язык браузера, Chatwoot пишет
+//    его в диалог сам, без нашего участия. Годится, когда переключателем не
+//    пользовались: украинский браузер получит украинского бота сразу.
+// 3) Русский — язык, на котором написан сам сценарий (см. i18n.js).
+//
+// Язык фиксируется один раз на старте и дальше живёт в state: если клиент
+// переключит виджет посреди диалога, менять язык на полпути мы не будем —
+// половина переписки на одном языке, половина на другом читается хуже, чем
+// один язык до конца заявки.
+function resolveLocale(conversation) {
+  return (
+    normalizeLocale(conversation?.custom_attributes?.locale) ||
+    normalizeLocale(conversation?.additional_attributes?.browser_language) ||
+    DEFAULT_LOCALE
+  );
+}
+
 async function startFlow(client, conversationId) {
   // Один запрос вместо трёх: категория, custom-атрибуты контакта
   // (project/languages — по ним renderNode автоматически пропускает
@@ -357,6 +405,7 @@ async function startFlow(client, conversationId) {
   const category = conversation?.custom_attributes?.type || null;
   const contactAttributes = conversation?.meta?.sender?.custom_attributes || {};
   const email = conversation?.meta?.sender?.email || null;
+  const locale = resolveLocale(conversation);
 
   // Категория не задана — старое поведение по умолчанию (main_menu).
   // Категория задана, но для неё нет ветки в CATEGORY_ENTRY_NODE — молчим,
@@ -388,6 +437,7 @@ async function startFlow(client, conversationId) {
 
   const state = freshState();
   state.contactAttributes = contactAttributes;
+  state.locale = locale;
   await renderNode(client, conversationId, entryNode, state);
 }
 
@@ -538,11 +588,12 @@ async function handleTextAnswer(client, conversationId, text) {
   if (isDone(state)) return undefined;
 
   const trimmed = text.trim().toLowerCase();
-  if (trimmed === 'меню' || trimmed === 'главное меню') {
+  const command = matchTextCommand(trimmed);
+  if (command === 'menu') {
     state.history = [];
     return renderNode(client, conversationId, 'main_menu', state);
   }
-  if (trimmed === 'назад') {
+  if (command === 'back') {
     const prev = state.history.pop() || 'main_menu';
     return renderNode(client, conversationId, prev, state);
   }
@@ -556,8 +607,15 @@ async function handleTextAnswer(client, conversationId, text) {
   // совпадал с одним из option. Сравниваем без учёта регистра/крайних
   // пробелов и, если совпало, засчитываем как обычный выбор.
   if (node?.type === 'question' && node.field.type === 'select') {
+    // Сравниваем и со значением варианта, и с его подписью на языке диалога:
+    // клиент печатает то, что видит на кнопке, а видит он перевод.
+    const locale = localeOf(state);
     const matched = node.field.options.find(
-      o => o.trim().toLowerCase() === trimmed
+      o =>
+        o.trim().toLowerCase() === trimmed ||
+        t(node.field.optionTitles?.[o] ?? o, locale)
+          .trim()
+          .toLowerCase() === trimmed
     );
     if (matched) {
       state.formData[node.field.name] = matched;
@@ -602,10 +660,7 @@ async function handleTextAnswer(client, conversationId, text) {
   if (node.field.type === 'email' && !EMAIL_RE.test(trimmedValue)) {
     // Как и в Freshchat — некорректный email не проходит дальше,
     // а переспрашивается тем же вопросом.
-    await client.sendText(
-      conversationId,
-      'Похоже, это не похоже на email. Укажите адрес в формате [email protected]'
-    );
+    await client.sendText(conversationId, ui('INVALID_EMAIL', localeOf(state)));
     return renderNode(client, conversationId, state.nodeId, state);
   }
 
@@ -637,7 +692,7 @@ async function handleAttachmentAnswer(client, conversationId) {
 
   return client.sendText(
     conversationId,
-    'Файл получен. Чтобы продолжить, ответьте, пожалуйста, на вопрос выше.'
+    ui('ATTACHMENT_RECEIVED', localeOf(state))
   );
 }
 

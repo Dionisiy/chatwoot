@@ -1,6 +1,13 @@
 <script setup>
 import { ref } from 'vue';
-import { state, TYPES, addNode, save, openHistory } from '../store';
+import {
+  state,
+  TYPES,
+  addNode,
+  save,
+  openHistory,
+  openTranslations,
+} from '../store';
 
 const newId = ref('');
 const newType = ref('message');
@@ -49,6 +56,9 @@ function onAdd() {
             ? 'Сохранить всё *'
             : 'Сохранить всё'
       }}
+    </button>
+    <button class="secondary" type="button" @click="openTranslations">
+      Переводы
     </button>
     <button class="secondary" type="button" @click="openHistory">
       История

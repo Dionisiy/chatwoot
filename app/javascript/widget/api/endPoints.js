@@ -1,4 +1,7 @@
-import { buildSearchParamsWithLocale } from '../helpers/urlParamsHelper';
+import {
+  buildSearchParamsWithLocale,
+  getWidgetDisplayLocale,
+} from '../helpers/urlParamsHelper';
 import { generateEventParams } from './events';
 
 const createConversation = params => {
@@ -18,7 +21,17 @@ const createConversation = params => {
         timestamp: new Date().toString(),
         referer_url: referrerURL,
       },
-      custom_attributes: params.customAttributes,
+      // Язык, выбранный клиентом в виджете (переключатель Рус/Укр/Eng —
+      // LocaleSwitcher.vue), сохраняется в самой заявке. ?locale= в адресе
+      // запроса для этого не годится: Chatwoot читает его только в
+      // events_controller и нигде не сохраняет. А язык нужен, во-первых,
+      // боту — он ведёт весь сценарий на языке клиента (см.
+      // agent-bot-scenarios/src/engine.js#resolveLocale), во-вторых, агенту:
+      // в карточке заявки сразу видно, на каком языке отвечать.
+      custom_attributes: {
+        ...params.customAttributes,
+        locale: getWidgetDisplayLocale(),
+      },
     },
   };
 };

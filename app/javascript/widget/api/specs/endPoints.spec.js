@@ -69,7 +69,9 @@ describe('#createConversation', () => {
           timestamp: 'mock date',
           referer_url: '',
         },
-        custom_attributes: { order_id: '12345' },
+        // locale добавляется всегда: по нему бот выбирает язык сценария,
+        // а агент видит в карточке, на каком языке отвечать клиенту.
+        custom_attributes: { order_id: '12345', locale: 'ar' },
       },
     });
     spy.mockRestore();

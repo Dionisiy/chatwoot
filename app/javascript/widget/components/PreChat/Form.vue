@@ -5,6 +5,7 @@ import { mapGetters } from 'vuex';
 import { getContrastingTextColor } from '@chatwoot/utils';
 import { isEmptyObject } from 'widget/helpers/utils';
 import { getRegexp } from 'shared/helpers/Validators';
+import { translateConfigString } from 'widget/helpers/configTranslations';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import configMixin from 'widget/mixins/configMixin';
 import { FormKit, createInput } from '@formkit/vue';
@@ -164,11 +165,13 @@ export default {
     isContactFieldRequired(field) {
       return this.preChatFields.find(option => option.name === field).required;
     },
+    // label/placeholder приходят из настроек инбокса и языка не имеют —
+    // переводим их на язык виджета (см. configTranslations.js).
     getLabel({ label }) {
-      return label;
+      return translateConfigString(label, this.$i18n.locale);
     },
     getPlaceHolder({ placeholder }) {
-      return placeholder;
+      return translateConfigString(placeholder, this.$i18n.locale);
     },
     getValue({ name, type }) {
       if (type === 'select') {
@@ -237,7 +240,10 @@ export default {
         item.values.forEach((value, index) => {
           values = {
             ...values,
-            [index]: value,
+            // Ключ — индекс, по нему getValue() достаёт ИСХОДНОЕ значение из
+            // item.values и отправляет его на сервер. Здесь только подпись,
+            // поэтому перевод категории не ломает маршрутизацию бота.
+            [index]: translateConfigString(value, this.$i18n.locale),
           };
         });
         return values;

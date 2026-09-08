@@ -4,6 +4,7 @@
 // перенос из старой vanilla-версии (adminUi.js), только вместо ручного
 // innerHTML теперь просто реактивный state, а перерисовку берёт на себя Vue.
 import { reactive } from 'vue';
+import { readBase } from './translations';
 
 export const TYPES = ['menu', 'question', 'message', 'link', 'end', 'submit'];
 
@@ -30,6 +31,7 @@ export const state = reactive({
   historyError: null,
   historyVersions: [], // [{ id, created_at, created_by }], без content (см. HistoryPanel.vue)
   historyRestoringId: null,
+  translationsOpen: false,
 });
 
 function setDirty() {
@@ -157,13 +159,26 @@ export async function restoreVersion(id) {
   }
 }
 
+// Экран переводов правит те же самые узлы дерева, что и обычный редактор,
+// поэтому отдельного «сохранить переводы» нет: изменения помечают дерево
+// изменённым и уезжают на сервер общей кнопкой «Сохранить всё».
+export function openTranslations() {
+  state.translationsOpen = true;
+}
+
+export function closeTranslations() {
+  state.translationsOpen = false;
+}
+
 export function selectNode(id) {
   state.selectedId = id;
 }
 
+// Подпись узла в сайдбаре и на схеме — всегда русский оригинал: редактор
+// одноязычный, переводы правятся на отдельном экране (см. translations.js).
 export function nodePreview(node) {
   if (!node) return '';
-  return node.title || node.prompt || node.text || node.message || '';
+  return readBase(node.title || node.prompt || node.text || node.message || '');
 }
 
 // Дефолтные поля под тип узла — используется и при создании нового узла, и
@@ -306,7 +321,7 @@ export function branchGroups() {
 
   if (mainMenu && Array.isArray(mainMenu.options)) {
     mainMenu.options.forEach(opt => {
-      const key = opt.title || opt.id;
+      const key = readBase(opt.title) || opt.id;
       const queue = opt.next ? [opt.next] : [];
       const seen = {};
       const ids = [];

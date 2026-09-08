@@ -1,4 +1,5 @@
 const { pool } = require('./db');
+const { LOCALES, isLocalized } = require('./i18n');
 
 // Единственный источник правды для дерева сценария — таблица
 // agent_bot_flow_versions в Postgres (см. db/schema.sql), а не файл на диске:
@@ -40,7 +41,9 @@ async function init() {
 
 function getFlows() {
   if (!cache) {
-    throw new Error('flowStore.init() ещё не вызван (или упал) — кэш дерева сценария пуст.');
+    throw new Error(
+      'flowStore.init() ещё не вызван (или упал) — кэш дерева сценария пуст.'
+    );
   }
   return cache;
 }
@@ -56,6 +59,52 @@ async function reloadFlows() {
 const VALID_TYPES = ['menu', 'question', 'message', 'link', 'end', 'submit'];
 const VALID_FIELD_TYPES = ['text', 'email', 'select', 'date', 'student_select'];
 
+// Текст узла — либо непустая строка, либо объект переводов (см. i18n.js).
+// Возвращает текст ошибки или null.
+function textError(value, where) {
+  if (typeof value === 'string') {
+    return value.trim() ? null : `${where}: пустой текст`;
+  }
+  if (isLocalized(value)) {
+    const unknown = Object.keys(value).filter(k => !LOCALES.includes(k));
+    if (unknown.length) {
+      return `${where}: неизвестные языки ${unknown.join(', ')} (допустимо: ${LOCALES.join(', ')})`;
+    }
+    const notString = Object.entries(value).find(
+      ([, v]) => typeof v !== 'string'
+    );
+    if (notString)
+      return `${where}: перевод "${notString[0]}" должен быть строкой`;
+    return Object.values(value).some(v => v.trim())
+      ? null
+      : `${where}: все переводы пустые`;
+  }
+  return `${where}: нет текста`;
+}
+
+// optionTitles — необязательная карта «значение варианта → переводы подписи».
+// Ключи должны существовать среди field.options, иначе перевод молча никогда
+// не покажется, и в редакторе это ничем не проявится.
+function checkOptionTitles(field, id, errors) {
+  const { optionTitles } = field;
+  if (!optionTitles) return;
+  if (typeof optionTitles !== 'object' || Array.isArray(optionTitles)) {
+    errors.push(`${id}: field.optionTitles должен быть объектом`);
+    return;
+  }
+  const options = Array.isArray(field.options) ? field.options : [];
+  Object.entries(optionTitles).forEach(([value, title]) => {
+    if (!options.includes(value)) {
+      errors.push(
+        `${id}: field.optionTitles["${value}"] — такого варианта нет в field.options`
+      );
+      return;
+    }
+    const error = textError(title, `${id}.field.optionTitles["${value}"]`);
+    if (error) errors.push(error);
+  });
+}
+
 // Возвращает массив текстовых ошибок (пустой массив = дерево валидно).
 // Не бросает исключений сама — так проще показать все ошибки разом в UI,
 // а не чинить их по одной через повторные попытки сохранить.
@@ -64,11 +113,17 @@ function validate(flows) {
   if (!flows || typeof flows !== 'object' || Array.isArray(flows)) {
     return ['Дерево должно быть объектом { id_узла: узел, ... }'];
   }
-  if (!flows.main_menu) errors.push('Отсутствует обязательный корневой узел main_menu');
+  if (!flows.main_menu)
+    errors.push('Отсутствует обязательный корневой узел main_menu');
 
   const ids = new Set(Object.keys(flows));
   const checkRef = (nextId, where) => {
-    if (nextId && !ids.has(nextId)) errors.push(`${where}: ссылка на несуществующий узел "${nextId}"`);
+    if (nextId && !ids.has(nextId))
+      errors.push(`${where}: ссылка на несуществующий узел "${nextId}"`);
+  };
+  const checkText = (value, where) => {
+    const error = textError(value, where);
+    if (error) errors.push(error);
   };
 
   Object.entries(flows).forEach(([id, node]) => {
@@ -77,40 +132,57 @@ function validate(flows) {
       return;
     }
     if (!VALID_TYPES.includes(node.type)) {
-      errors.push(`${id}: неизвестный type "${node.type}" (допустимо: ${VALID_TYPES.join(', ')})`);
+      errors.push(
+        `${id}: неизвестный type "${node.type}" (допустимо: ${VALID_TYPES.join(', ')})`
+      );
       return;
     }
 
     if (node.type === 'menu') {
-      if (!node.title) errors.push(`${id}: menu без title`);
+      checkText(node.title, `${id}.title`);
       if (!Array.isArray(node.options) || !node.options.length) {
         errors.push(`${id}: menu без options`);
       } else {
         node.options.forEach((o, i) => {
           if (!o.id) errors.push(`${id}.options[${i}]: нет id`);
-          if (!o.title) errors.push(`${id}.options[${i}]: нет title`);
+          checkText(o.title, `${id}.options[${i}].title`);
           checkRef(o.next, `${id}.options[${i}].next`);
         });
       }
     } else if (node.type === 'question') {
-      if (!node.prompt) errors.push(`${id}: question без prompt`);
-      if (!node.field || !node.field.name) errors.push(`${id}: question без field.name`);
-      if (node.field && node.field.type && !VALID_FIELD_TYPES.includes(node.field.type)) {
-        errors.push(`${id}: field.type "${node.field.type}" не поддерживается (допустимо: ${VALID_FIELD_TYPES.join(', ')})`);
+      checkText(node.prompt, `${id}.prompt`);
+      if (!node.field || !node.field.name)
+        errors.push(`${id}: question без field.name`);
+      if (
+        node.field &&
+        node.field.type &&
+        !VALID_FIELD_TYPES.includes(node.field.type)
+      ) {
+        errors.push(
+          `${id}: field.type "${node.field.type}" не поддерживается (допустимо: ${VALID_FIELD_TYPES.join(', ')})`
+        );
       }
-      if (node.field && node.field.type === 'select' && (!Array.isArray(node.field.options) || !node.field.options.length)) {
-        errors.push(`${id}: field.type=select без field.options`);
+      if (node.field && node.field.type === 'select') {
+        if (!Array.isArray(node.field.options) || !node.field.options.length) {
+          errors.push(`${id}: field.type=select без field.options`);
+        }
+        // Значения вариантов (они же попадают в заявку и в formData) —
+        // всегда строки и НЕ переводятся: перевести их значило бы поменять
+        // сам ответ, который увидит агент. Переводится только подпись
+        // кнопки — необязательной картой optionTitles: { значение: {...} }.
+        checkOptionTitles(node.field, id, errors);
       }
       checkRef(node.next, `${id}.next`);
     } else if (node.type === 'message') {
-      if (!node.text) errors.push(`${id}: message без text`);
+      checkText(node.text, `${id}.text`);
       checkRef(node.next, `${id}.next`);
     } else if (node.type === 'link') {
-      if (!node.text) errors.push(`${id}: link без text`);
+      checkText(node.text, `${id}.text`);
+      if (node.url) checkText(node.linkTitle, `${id}.linkTitle`);
     } else if (node.type === 'end') {
-      if (!node.text) errors.push(`${id}: end без text`);
+      checkText(node.text, `${id}.text`);
     } else if (node.type === 'submit') {
-      if (!node.message) errors.push(`${id}: submit без message`);
+      checkText(node.message, `${id}.message`);
     }
   });
 

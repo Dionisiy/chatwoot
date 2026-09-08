@@ -1,8 +1,12 @@
+// Язык, на котором виджет прямо сейчас показан клиенту: настройки инбокса,
+// ?locale= в адресе или ручной выбор в переключателе (LocaleSwitcher.vue) —
+// что из этого победило, знает только сам vue-i18n, поэтому спрашиваем его.
+export const getWidgetDisplayLocale = () =>
+  window.WOOT_WIDGET?.$root?.$i18n?.locale || 'en';
+
 export const buildSearchParamsWithLocale = search => {
-  // [TODO] for now this works, but we will need to find a way to get the locale from the root component
-  const locale = window.WOOT_WIDGET.$root.$i18n.locale;
   const params = new URLSearchParams(search);
-  params.append('locale', locale);
+  params.append('locale', getWidgetDisplayLocale());
 
   return `?${params}`;
 };
