@@ -1,5 +1,6 @@
 <script>
 import TeamAvailability from 'widget/components/TeamAvailability.vue';
+import LocaleSwitcher from 'widget/components/LocaleSwitcher.vue';
 import { mapGetters } from 'vuex';
 import { useRouter } from 'vue-router';
 import configMixin from 'widget/mixins/configMixin';
@@ -14,6 +15,7 @@ export default {
   components: {
     ArticleContainer,
     TeamAvailability,
+    LocaleSwitcher,
     FluentIcon,
   },
   mixins: [configMixin],
@@ -101,5 +103,10 @@ export default {
     </div>
 
     <ArticleContainer />
+
+    <!-- Выбор языка держим на главном экране, а не в шапке: шапка узкая и
+         уже занята действиями, а сюда клиент попадает до начала диалога —
+         момент, когда язык и хочется поменять. -->
+    <LocaleSwitcher />
   </div>
 </template>

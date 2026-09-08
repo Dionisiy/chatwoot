@@ -5,6 +5,7 @@ import addHours from 'date-fns/addHours';
 import { IFrameHelper, RNHelper } from 'widget/helpers/utils';
 import configMixin from './mixins/configMixin';
 import { getLocale } from './helpers/urlParamsHelper';
+import { getWidgetLocale } from './helpers/localeStorage';
 import { getLanguageDirection } from 'dashboard/components/widgets/conversation/advancedFilterItems/languages';
 import { isEmptyObject } from 'widget/helpers/utils';
 import Spinner from 'shared/components/Spinner.vue';
@@ -110,6 +111,10 @@ export default {
       this.registerListeners();
       this.sendRNWebViewLoadedEvent();
     }
+    // Язык, выбранный клиентом в самом виджете (LocaleSwitcher.vue),
+    // применяем ПОСЛЕДНИМ — он должен перебивать и локаль аккаунта, и
+    // ?locale= из адреса, иначе выбор сбрасывался бы на каждой перезагрузке.
+    this.setLocale(getWidgetLocale());
     this.$store.dispatch('conversationAttributes/getAttributes');
     this.registerUnreadEvents();
     this.registerCampaignEvents();
