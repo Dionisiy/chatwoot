@@ -657,3 +657,7 @@ en:
       no_subscriptions_to_test: 'Select at least one subscription to test.'
       no_subscriptions_to_delete: 'Select at least one subscription to delete.'
       subscriptions_deleted: "Deleted %{count} subscription(s). The user's device(s) will re-register on next app launch."
+  email_deliveries:
+    resend:
+      no_conversation: 'This email is not linked to a conversation, so it cannot be re-sent.'
+      unsupported: 'This email cannot be re-sent automatically.'

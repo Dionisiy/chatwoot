@@ -310,6 +310,13 @@ Rails.application.routes.draw do
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
 
+          # Журнал исходящих писем: что ушло клиенту, дошло ли, и почему нет.
+          resources :email_deliveries, only: [:index] do
+            member do
+              post :resend
+            end
+          end
+
           resources :notifications, only: [:index, :update, :destroy] do
             collection do
               post :read_all

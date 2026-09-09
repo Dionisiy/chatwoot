@@ -1,0 +1,35 @@
+{
+  "EMAIL_DELIVERIES": {
+    "HEADER": "Email log",
+    "DESCRIPTION": "Every email the system sent, with the delivery verdict from the recipient's server.",
+    "LOADING": "Loading the email log…",
+    "404": "No emails have been sent yet.",
+    "FETCH_ERROR": "Could not load the email log.",
+    "REFRESH": "Refresh",
+    "FILTER_ALL": "All",
+    "CONVERSATION": "Conversation #{id}",
+    "PREV": "Previous",
+    "NEXT": "Next",
+    "STATUS": {
+      "PENDING": "Stuck",
+      "ACCEPTED": "Handed to mail server",
+      "DELIVERED": "Delivered",
+      "BOUNCED": "Rejected",
+      "DEFERRED": "Retrying",
+      "FAILED": "Failed to send"
+    },
+    "TABLE": {
+      "STATUS": "Status",
+      "RECIPIENT": "Recipient",
+      "SUBJECT": "Subject",
+      "DETAILS": "Server response",
+      "SENT_AT": "Time",
+      "ACTIONS": "Actions"
+    },
+    "RESEND": {
+      "BUTTON": "Send again",
+      "SUCCESS": "The email has been queued for sending.",
+      "ERROR": "Could not re-send the email."
+    }
+  }
+}

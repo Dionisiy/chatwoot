@@ -913,6 +913,12 @@ const menuItems = computed(() => {
           icon: 'i-lucide-bot',
           to: accountScopedRoute('agent_bots'),
         },
+        {
+          name: 'Settings Email Deliveries',
+          label: t('SIDEBAR.EMAIL_DELIVERIES'),
+          icon: 'i-lucide-mail-check',
+          to: accountScopedRoute('email_deliveries'),
+        },
         ...(isAdministrator.value
           ? [
               {

@@ -1,5 +1,6 @@
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
+import emailDeliveries from './emailDeliveries.json';
 import agentMgmt from './agentMgmt.json';
 import attributesMgmt from './attributesMgmt.json';
 import auditLogs from './auditLogs.json';
@@ -43,6 +44,7 @@ import whatsappTemplates from './whatsappTemplates.json';
 export default {
   ...advancedFilters,
   ...agentBots,
+  ...emailDeliveries,
   ...agentMgmt,
   ...attributesMgmt,
   ...auditLogs,

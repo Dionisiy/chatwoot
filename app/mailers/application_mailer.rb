@@ -27,6 +27,11 @@ class ApplicationMailer < ActionMailer::Base
   def handle_smtp_exceptions(message)
     Rails.logger.warn 'Failed to send Email'
     Rails.logger.error "Exception: #{message}"
+    # Раньше упавшая отправка оставляла после себя только эти две строки в
+    # логе приложения, и из интерфейса выглядела как будто письма не было
+    # вовсе. Отмечаем её в журнале (см. EmailDelivery), чтобы причина была
+    # видна рядом с самим письмом.
+    Emails::DeliveryTracker.mark_failed(self.message, message)
   end
 
   def send_mail_with_liquid(*args)

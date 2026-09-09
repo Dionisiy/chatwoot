@@ -66,6 +66,9 @@ class Account < ApplicationRecord
   has_many :account_users, dependent: :destroy_async
   has_many :agent_bot_inboxes, dependent: :destroy_async
   has_many :agent_bots, dependent: :destroy_async
+  # Журнал исходящих писем (см. EmailDelivery) — историю доставки удаляем
+  # вместе с аккаунтом, отдельной ценности она не имеет.
+  has_many :email_deliveries, dependent: :destroy_async
   has_many :api_channels, dependent: :destroy_async, class_name: '::Channel::Api'
   has_many :articles, dependent: :destroy_async, class_name: '::Article'
   has_many :assignment_policies, dependent: :destroy_async
