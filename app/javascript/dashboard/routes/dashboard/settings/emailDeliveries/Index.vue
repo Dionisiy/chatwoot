@@ -106,11 +106,12 @@ onMounted(fetchDeliveries);
 </script>
 
 <template>
+  <!-- no-records-found намеренно не используем: он прячет всё тело страницы
+       вместе с фильтрами, и из состояния «по этому статусу писем нет» нельзя
+       было бы вернуться к «Все». Пустой список показывает сама таблица. -->
   <SettingsLayout
     :is-loading="isFetching"
     :loading-message="t('EMAIL_DELIVERIES.LOADING')"
-    :no-records-found="!deliveries.length"
-    :no-records-message="t('EMAIL_DELIVERIES.404')"
   >
     <template #header>
       <BaseSettingsHeader
@@ -158,59 +159,70 @@ onMounted(fetchDeliveries);
         </button>
       </div>
 
-      <BaseTable :headers="tableHeaders">
-        <BaseTableRow v-for="delivery in deliveries" :key="delivery.id">
-          <BaseTableCell>
-            <span
-              class="px-2 py-1 text-xs font-medium rounded-md"
-              :class="STATUS_CLASSES[delivery.status]"
-            >
-              {{ statusLabel(delivery.status) }}
-            </span>
-          </BaseTableCell>
-          <BaseTableCell>
-            <span class="text-sm text-n-slate-12">{{ delivery.to_email }}</span>
-          </BaseTableCell>
-          <BaseTableCell>
-            <div class="min-w-0">
-              <div class="text-sm truncate text-n-slate-12">
-                {{ delivery.subject || '—' }}
-              </div>
-              <div
-                v-if="delivery.conversation_display_id"
-                class="text-xs text-n-slate-10"
+      <!-- BaseTable рисует строки только из именованного слота row и только
+           когда ему передан items: заголовки и тело завязаны на эту коллекцию
+           (см. BaseTable.vue#showHeaders). -->
+      <BaseTable
+        :headers="tableHeaders"
+        :items="deliveries"
+        :no-data-message="t('EMAIL_DELIVERIES.404')"
+      >
+        <template #row>
+          <BaseTableRow v-for="delivery in deliveries" :key="delivery.id">
+            <BaseTableCell>
+              <span
+                class="px-2 py-1 text-xs font-medium rounded-md"
+                :class="STATUS_CLASSES[delivery.status]"
               >
-                {{
-                  t('EMAIL_DELIVERIES.CONVERSATION', {
-                    id: delivery.conversation_display_id,
-                  })
-                }}
+                {{ statusLabel(delivery.status) }}
+              </span>
+            </BaseTableCell>
+            <BaseTableCell>
+              <span class="text-sm text-n-slate-12">{{
+                delivery.to_email
+              }}</span>
+            </BaseTableCell>
+            <BaseTableCell>
+              <div class="min-w-0">
+                <div class="text-sm truncate text-n-slate-12">
+                  {{ delivery.subject || '—' }}
+                </div>
+                <div
+                  v-if="delivery.conversation_display_id"
+                  class="text-xs text-n-slate-10"
+                >
+                  {{
+                    t('EMAIL_DELIVERIES.CONVERSATION', {
+                      id: delivery.conversation_display_id,
+                    })
+                  }}
+                </div>
               </div>
-            </div>
-          </BaseTableCell>
-          <BaseTableCell>
-            <!-- Ответ принимающего сервера или текст исключения: ради этой
+            </BaseTableCell>
+            <BaseTableCell>
+              <!-- Ответ принимающего сервера или текст исключения: ради этой
                  колонки журнал и делался, тут лежит причина отказа. -->
-            <span class="text-xs break-all text-n-slate-11">
-              {{ delivery.mta_response || delivery.error_message || '—' }}
-            </span>
-          </BaseTableCell>
-          <BaseTableCell>
-            <span class="text-sm whitespace-nowrap text-n-slate-11">
-              {{ formatDate(delivery.delivered_at || delivery.created_at) }}
-            </span>
-          </BaseTableCell>
-          <BaseTableCell>
-            <Button
-              v-if="delivery.resendable"
-              :label="t('EMAIL_DELIVERIES.RESEND.BUTTON')"
-              size="sm"
-              variant="faded"
-              :is-loading="resendingId === delivery.id"
-              @click="resend(delivery)"
-            />
-          </BaseTableCell>
-        </BaseTableRow>
+              <span class="text-xs break-all text-n-slate-11">
+                {{ delivery.mta_response || delivery.error_message || '—' }}
+              </span>
+            </BaseTableCell>
+            <BaseTableCell>
+              <span class="text-sm whitespace-nowrap text-n-slate-11">
+                {{ formatDate(delivery.delivered_at || delivery.created_at) }}
+              </span>
+            </BaseTableCell>
+            <BaseTableCell>
+              <Button
+                v-if="delivery.resendable"
+                :label="t('EMAIL_DELIVERIES.RESEND.BUTTON')"
+                size="sm"
+                variant="faded"
+                :is-loading="resendingId === delivery.id"
+                @click="resend(delivery)"
+              />
+            </BaseTableCell>
+          </BaseTableRow>
+        </template>
       </BaseTable>
 
       <div v-if="totalPages > 1" class="flex gap-2 justify-center mt-4">
