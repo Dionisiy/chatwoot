@@ -406,8 +406,25 @@ class Message < ApplicationRecord
     return unless incoming?
 
     conversation.open! if conversation.snoozed?
-
+    reopen_pending_conversation if conversation.pending?
     reopen_resolved_conversation if conversation.resolved?
+  end
+
+  # Клиент ответил по заявке, которую оператор отложил в «В ожидании» —
+  # возвращаем её в «Открыто», иначе ответ остаётся незамеченным: в списке
+  # открытых заявки нет, а уведомление о новом сообщении оператор мог
+  # пропустить.
+  #
+  # Статус pending в Chatwoot перегружен: в нём же живут диалоги, пока их
+  # ведёт бот (см. Conversation#set_active_bot_conversation — новые заявки
+  # создаются сразу pending). Отличаем по assignee_agent_bot: пока идёт
+  # анкета, бот назначен ответственным и сам управляет статусом, а закончив,
+  # вызывает bot_handoff!, который ответственного обнуляет. Так ответы на
+  # вопросы бота не засоряют список открытых недозаполненными заявками.
+  def reopen_pending_conversation
+    return if conversation.assignee_agent_bot_id.present?
+
+    conversation.open!
   end
 
   def mark_pending_conversation_as_open_for_human_response
@@ -424,7 +441,12 @@ class Message < ApplicationRecord
 
   def reopen_resolved_conversation
     # mark resolved bot conversation as pending to be reopened by bot processor service
-    if conversation.inbox.active_bot?
+    #
+    # Только пока бот действительно ведёт диалог. После bot_handoff! (сценарий
+    # пройден, заявка передана команде) ответ клиента на завершённую заявку
+    # уходил бы в pending — то есть мимо списка открытых, хотя ждёт его уже
+    # живой оператор, а не бот.
+    if conversation.inbox.active_bot? && conversation.assignee_agent_bot_id.present?
       conversation.pending!
     elsif conversation.inbox.api?
       Current.executed_by = sender if reopened_by_contact?
