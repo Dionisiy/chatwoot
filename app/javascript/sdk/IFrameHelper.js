@@ -211,6 +211,15 @@ export const IFrameHelper = {
       updateAuthCookie(widgetAuthToken, window.$chatwoot.baseDomain);
     },
 
+    // Виджет сообщил, что на сервере контакт остался анонимным (см.
+    // widget/store/modules/contacts.js#get). Значит хэш в cookie врёт:
+    // setUser сверяется с ним и, посчитав данные уже отправленными, выходит
+    // без запроса (см. sdk.js#setUser). Убираем cookie, чтобы следующий
+    // вызов с сайта прошёл по-настоящему, а клиент перестал быть безымянным.
+    clearUserCookie() {
+      Cookies.remove(getUserCookieName());
+    },
+
     setCampaignReadOn() {
       updateCampaignReadStatus(window.$chatwoot.baseDomain);
     },

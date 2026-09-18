@@ -20,6 +20,14 @@ const CONFIG_STRINGS = {
     uk: 'Категорія',
     en: 'Category',
   },
+  'Ваше имя': {
+    uk: 'Ваше ім’я',
+    en: 'Your name',
+  },
+  'Как к вам обращаться': {
+    uk: 'Як до вас звертатися',
+    en: 'How should we address you',
+  },
   Slideedu: {
     uk: 'Slideedu',
     en: 'Slideedu',
