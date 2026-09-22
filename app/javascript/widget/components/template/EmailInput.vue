@@ -74,6 +74,16 @@ export default {
 
 <template>
   <div>
+    <!-- После отправки поле ввода исчезало, не оставляя следа: клиент не видел,
+         какой адрес ушёл, и не мог проверить опечатку, а в ленте между вопросом
+         о почте и следующим вопросом зиял пробел. Показываем отправленное
+         значение на месте формы. -->
+    <div
+      v-if="hasSubmitted"
+      class="px-2.5 py-2 my-2 rounded-lg bg-n-alpha-2 dark:bg-n-alpha-black1 text-n-slate-12 break-all"
+    >
+      {{ messageContentAttributes.submitted_email }}
+    </div>
     <form
       v-if="!hasSubmitted"
       class="email-input-group h-10 flex my-2 mx-0 min-w-[200px]"

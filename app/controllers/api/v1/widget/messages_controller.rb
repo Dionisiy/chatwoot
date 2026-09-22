@@ -14,12 +14,21 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
 
   def update
     if @message.content_type == 'input_email'
+      # Сохраняем введённый email ТОЛЬКО в самом сообщении, карточку контакта
+      # не трогаем.
+      #
+      # Апстрим здесь вызывал ContactIdentifyAction, то есть переписывал
+      # contact.email введённым значением, а если такой email уже числился за
+      # другим контактом — сливал две карточки со всей историей заявок в одну,
+      # необратимо. Для SlideEdu это неверно дважды. Во-первых, email в
+      # Chatwoot — собственность setUser: его присылает фронт вместе с
+      # подписанным identifier_hash, и он должен оставаться ровно тем, под
+      # которым клиент зарегистрирован. Во-вторых, бот спрашивает почту не
+      # чтобы опознать клиента, а как реквизит заявки: в финансовых ветках
+      # клиенты регистрируются в платёжном приложении под почтой, отличной от
+      # школьной, и подменять ею карточку — значит терять связь с настоящим
+      # аккаунтом.
       @message.update!(submitted_email: contact_email)
-      ContactIdentifyAction.new(
-        contact: @contact,
-        params: { email: contact_email, name: contact_name },
-        retain_original_contact_name: true
-      ).perform
     else
       @message.update!(message_update_params[:message])
     end
