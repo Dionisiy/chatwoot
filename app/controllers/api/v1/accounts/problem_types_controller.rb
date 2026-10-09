@@ -43,9 +43,7 @@ class Api::V1::Accounts::ProblemTypesController < Api::V1::Accounts::BaseControl
   # Удалить можно только тип, который нигде не выбран. Иначе его закрытые
   # беседы молча ушли бы в отчёте в «Не указано» — для таких есть merge.
   def destroy
-    if @problem_type.conversations.exists?
-      return render json: { error: I18n.t('problem_types.errors.in_use') }, status: :unprocessable_entity
-    end
+    return render json: { error: I18n.t('problem_types.errors.in_use') }, status: :unprocessable_entity if @problem_type.conversations.exists?
 
     @problem_type.destroy!
     head :ok
@@ -63,7 +61,7 @@ class Api::V1::Accounts::ProblemTypesController < Api::V1::Accounts::BaseControl
     end
 
     ActiveRecord::Base.transaction do
-      @problem_type.conversations.update_all(problem_type_id: target.id, updated_at: Time.current)
+      @problem_type.conversations.update_all(problem_type_id: target.id, updated_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
       @problem_type.destroy!
     end
     render json: { payload: target.push_event_data }
