@@ -159,6 +159,7 @@ Rails.application.routes.draw do
                 end
               end
               resources :assignments, only: [:create]
+              resource :problem_type, only: [:create]
               resources :labels, only: [:create, :index]
               resource :participants, only: [:show, :create, :update, :destroy]
               resource :direct_uploads, only: [:create]
@@ -170,7 +171,6 @@ Rails.application.routes.draw do
               post :transcript
               post :toggle_status
               post :toggle_priority
-              post :problem_type
               post :toggle_typing_status
               post :update_last_seen
               post :unread

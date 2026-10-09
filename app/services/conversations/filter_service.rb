@@ -27,9 +27,8 @@ class Conversations::FilterService < FilterService
     # :messages is deliberately not preloaded: the list payload fetches messages through
     # scoped queries (last message, last_non_activity_message), which bypass the preload.
     conversations = @account.conversations.includes(
-      :taggings, :inbox, { assignee: { avatar_attachment: [:blob] } }, { contact: { avatar_attachment: [:blob] } }, :team, :contact_inbox,
-      :problem_type
-    )
+      :taggings, :inbox, { assignee: { avatar_attachment: [:blob] } }, { contact: { avatar_attachment: [:blob] } }, :team, :contact_inbox
+    ).preload(:problem_type)
 
     Conversations::PermissionFilterService.new(
       conversations,
