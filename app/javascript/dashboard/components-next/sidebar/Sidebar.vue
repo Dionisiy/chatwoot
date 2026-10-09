@@ -919,6 +919,18 @@ const menuItems = computed(() => {
           icon: 'i-lucide-mail-check',
           to: accountScopedRoute('email_deliveries'),
         },
+        // Чистка справочника типов проблем — только для администраторов
+        // (см. ProblemTypePolicy); операторам пункт не нужен.
+        ...(isAdministrator.value
+          ? [
+              {
+                name: 'Settings Problem Types',
+                label: t('SIDEBAR.PROBLEM_TYPES'),
+                icon: 'i-lucide-list-tree',
+                to: accountScopedRoute('problem_types_settings'),
+              },
+            ]
+          : []),
         ...(isAdministrator.value
           ? [
               {

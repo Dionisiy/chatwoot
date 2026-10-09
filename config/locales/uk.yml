@@ -629,3 +629,8 @@ uk:
       no_subscriptions_to_test: 'Select at least one subscription to test.'
       no_subscriptions_to_delete: 'Select at least one subscription to delete.'
       subscriptions_deleted: "Deleted %{count} subscription(s). The user's device(s) will re-register on next app launch."
+  problem_types:
+    errors:
+      in_use: 'Цей тип вибрано в розмовах. Замість видалення об’єднайте його з іншим типом.'
+      merge_other_label: 'Об’єднувати можна лише типи однієї мітки.'
+      duplicate: 'Тип із такою назвою в цієї мітки вже є.'

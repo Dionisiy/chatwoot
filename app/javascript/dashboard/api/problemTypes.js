@@ -11,6 +11,11 @@ class ProblemTypesAPI extends ApiClient {
   create({ labelTitle, name }) {
     return axios.post(this.url, { label_title: labelTitle, name });
   }
+
+  // Беседы исходного типа переходят на targetId, исходный тип удаляется.
+  merge(id, targetId) {
+    return axios.post(`${this.url}/${id}/merge`, { target_id: targetId });
+  }
 }
 
 export default new ProblemTypesAPI();

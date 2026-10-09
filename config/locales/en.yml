@@ -661,3 +661,8 @@ en:
     resend:
       no_conversation: 'This email is not linked to a conversation, so it cannot be re-sent.'
       unsupported: 'This email cannot be re-sent automatically.'
+  problem_types:
+    errors:
+      in_use: 'This problem type is selected in conversations. Merge it into another type instead of deleting.'
+      merge_other_label: 'You can only merge problem types of the same label.'
+      duplicate: 'A problem type with this name already exists for this label.'

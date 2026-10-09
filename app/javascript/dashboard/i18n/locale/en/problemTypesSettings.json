@@ -1,0 +1,39 @@
+{
+  "PROBLEM_TYPES_SETTINGS": {
+    "HEADER": "Problem types",
+    "DESCRIPTION": "Problem types operators assign to conversations, grouped by main label. Operators add new types right from a conversation; here you can rename, merge duplicates and delete unused ones.",
+    "LOADING": "Loading problem types…",
+    "EMPTY": "No problem types yet. Operators create them from the conversation sidebar.",
+    "TABLE": {
+      "NAME": "Problem type",
+      "CONVERSATIONS": "Conversations",
+      "ACTIONS": "Actions"
+    },
+    "RENAME": {
+      "BUTTON": "Rename",
+      "SAVE": "Save",
+      "CANCEL": "Cancel",
+      "SUCCESS": "Problem type renamed",
+      "ERROR": "Could not rename the problem type"
+    },
+    "DELETE": {
+      "BUTTON": "Delete",
+      "TITLE": "Delete «{name}»?",
+      "DESCRIPTION": "The type is not used in any conversation, so nothing else will change.",
+      "CONFIRM": "Delete",
+      "SUCCESS": "Problem type deleted",
+      "ERROR": "Could not delete the problem type"
+    },
+    "MERGE": {
+      "BUTTON": "Merge",
+      "TITLE": "Merge «{name}» into another type",
+      "DESCRIPTION": "{count} conversation(s) will move to the selected type, and «{name}» will be deleted. This cannot be undone.",
+      "TARGET": "Merge into",
+      "CONFIRM": "Merge",
+      "SUCCESS": "Problem types merged",
+      "ERROR": "Could not merge problem types",
+      "NO_TARGETS": "This label has no other types to merge into."
+    },
+    "FETCH_ERROR": "Could not load problem types"
+  }
+}

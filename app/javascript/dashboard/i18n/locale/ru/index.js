@@ -1,6 +1,7 @@
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
 import emailDeliveries from './emailDeliveries.json';
+import problemTypesSettings from './problemTypesSettings.json';
 import agentMgmt from './agentMgmt.json';
 import attributesMgmt from './attributesMgmt.json';
 import auditLogs from './auditLogs.json';
@@ -45,6 +46,7 @@ export default {
   ...advancedFilters,
   ...agentBots,
   ...emailDeliveries,
+  ...problemTypesSettings,
   ...agentMgmt,
   ...attributesMgmt,
   ...auditLogs,
