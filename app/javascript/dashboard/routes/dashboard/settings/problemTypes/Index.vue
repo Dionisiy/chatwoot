@@ -216,28 +216,34 @@ onMounted(fetchProblemTypes);
                     @click="cancelRename"
                   />
                 </template>
+                <!-- Иконки вместо подписей — как на странице «Инбоксы»;
+                     подпись остаётся в подсказке и в aria-label. -->
                 <template v-else>
                   <Button
-                    :label="t('PROBLEM_TYPES_SETTINGS.RENAME.BUTTON')"
-                    size="sm"
-                    variant="faded"
-                    color="slate"
+                    v-tooltip.top="t('PROBLEM_TYPES_SETTINGS.RENAME.BUTTON')"
+                    :aria-label="t('PROBLEM_TYPES_SETTINGS.RENAME.BUTTON')"
+                    icon="i-lucide-pencil"
+                    slate
+                    sm
                     @click="startRename(item)"
                   />
                   <Button
                     v-if="item.conversations_count === 0"
-                    :label="t('PROBLEM_TYPES_SETTINGS.DELETE.BUTTON')"
-                    size="sm"
-                    variant="faded"
-                    color="ruby"
+                    v-tooltip.top="t('PROBLEM_TYPES_SETTINGS.DELETE.BUTTON')"
+                    :aria-label="t('PROBLEM_TYPES_SETTINGS.DELETE.BUTTON')"
+                    icon="i-lucide-trash-2"
+                    slate
+                    sm
+                    class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
                     @click="openDelete(item)"
                   />
                   <Button
                     v-else
-                    :label="t('PROBLEM_TYPES_SETTINGS.MERGE.BUTTON')"
-                    size="sm"
-                    variant="faded"
-                    color="slate"
+                    v-tooltip.top="t('PROBLEM_TYPES_SETTINGS.MERGE.BUTTON')"
+                    :aria-label="t('PROBLEM_TYPES_SETTINGS.MERGE.BUTTON')"
+                    icon="i-lucide-merge"
+                    slate
+                    sm
                     @click="openMerge(item)"
                   />
                 </template>
