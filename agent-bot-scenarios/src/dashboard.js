@@ -15,10 +15,9 @@
 // категорий они неполные. Метки же проставляются во всех ветках сценария
 // без исключений (см. AGENTS.md).
 
+const { pool } = require('./db');
 const { getProblemTypeBreakdown } = require('./problemTypeReport');
-
-const MAX_PAGES = 40; // ~1000 диалогов при 25/страницу — защита от рантайма
-// на очень больших аккаунтах; поднимите при необходимости.
+const { getOperatorBreakdown } = require('./operatorReport');
 
 function isoWeekStart(unixSeconds) {
   const d = new Date(unixSeconds * 1000);
@@ -28,23 +27,42 @@ function isoWeekStart(unixSeconds) {
   return d.toISOString().slice(0, 10);
 }
 
-async function fetchAllConversations(client) {
-  const all = [];
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
-    // eslint-disable-next-line no-await-in-loop
-    const { payload } = await client.listConversations({ status: 'all', page });
-    if (!payload || payload.length === 0) break;
-    all.push(...payload);
-    if (payload.length < 25) break; // последняя страница
-  }
-  return all;
-}
-
-function inRange(conv, since, until) {
-  const ts = conv.created_at || 0;
-  if (since && ts < since) return false;
-  if (until && ts > until) return false;
-  return true;
+// Беседы за период — прямым запросом в базу Chatwoot (бот подключён к ней же,
+// см. db.js). Раньше они выкачивались через API списка бесед постранично по
+// 25 штук, и каждая страница стоила около секунды: на 270 беседах дашборд
+// открывался 11–12 секунд и рос линейно вместе с базой. Форма элементов та
+// же, что отдавал API (id, labels, created_at, meta.sender), — aggregate()
+// и остальные разделы не меняются.
+async function fetchConversations({ since, until } = {}) {
+  const { rows } = await pool.query(
+    `SELECT c.display_id, extract(epoch FROM c.created_at)::bigint AS created_at,
+            c.cached_label_list, ct.id AS contact_id, ct.name AS contact_name,
+            ct.email AS contact_email
+       FROM conversations c
+       LEFT JOIN contacts ct ON ct.id = c.contact_id
+      WHERE c.account_id = $1
+        AND ($2::bigint IS NULL OR c.created_at >= to_timestamp($2))
+        AND ($3::bigint IS NULL OR c.created_at <= to_timestamp($3))
+      ORDER BY c.id`,
+    [process.env.CHATWOOT_ACCOUNT_ID, since || null, until || null]
+  );
+  return rows.map(row => ({
+    id: row.display_id,
+    created_at: Number(row.created_at),
+    labels: (row.cached_label_list || '')
+      .split(',')
+      .map(label => label.trim())
+      .filter(Boolean),
+    meta: {
+      sender: row.contact_id
+        ? {
+            id: row.contact_id,
+            name: row.contact_name,
+            email: row.contact_email,
+          }
+        : null,
+    },
+  }));
 }
 
 // Категория — метка сама по себе; сабкатегория — любая другая метка того же
@@ -156,27 +174,28 @@ async function getResponseTimeSummary(
     console.error('[dashboard] listLabels failed:', err.message);
   }
 
-  const perCategory = [];
-  // eslint-disable-next-line no-restricted-syntax
-  for (const name of categoryNames || []) {
-    const label = labels.find(l => l.title === name);
-    if (!label) continue; // "Без категории" и т.п. — не настоящая метка, пропускаем
-
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      const summary = await client.getReportSummary({
-        ...range,
-        type: 'label',
-        id: label.id,
-      });
-      perCategory.push({ name, ...summary });
-    } catch (err) {
-      console.error(
-        `[dashboard] getReportSummary(label=${name}) failed:`,
-        err.message
-      );
-    }
-  }
+  // Отчёты по меткам независимы — запрашиваем параллельно, а не по очереди.
+  const results = await Promise.all(
+    (categoryNames || []).map(async name => {
+      const label = labels.find(l => l.title === name);
+      if (!label) return null; // "Без категории" и т.п. — не настоящая метка
+      try {
+        const summary = await client.getReportSummary({
+          ...range,
+          type: 'label',
+          id: label.id,
+        });
+        return { name, ...summary };
+      } catch (err) {
+        console.error(
+          `[dashboard] getReportSummary(label=${name}) failed:`,
+          err.message
+        );
+        return null;
+      }
+    })
+  );
+  const perCategory = results.filter(Boolean);
 
   return { range, overall, perCategory };
 }
@@ -191,11 +210,11 @@ async function buildDashboardData(client, { since, until } = {}) {
       return null;
     }
   );
-  const allConversations = await fetchAllConversations(client);
-  const conversations =
-    since || until
-      ? allConversations.filter(c => inRange(c, since, until))
-      : allConversations;
+  const operatorsPromise = getOperatorBreakdown({ since, until }).catch(err => {
+    console.error('[dashboard] operators failed:', err.message);
+    return null;
+  });
+  const conversations = await fetchConversations({ since, until });
 
   const { clients, weeklyTrend, categoryNames, categories } =
     aggregate(conversations);
@@ -209,13 +228,14 @@ async function buildDashboardData(client, { since, until } = {}) {
     generatedAt: new Date().toISOString(),
     range: { since: since || null, until: until || null },
     totalConversations: conversations.length,
-    truncated: allConversations.length >= MAX_PAGES * 25,
+    truncated: false,
     categoryNames,
     categories,
     clients,
     weeklyTrend,
     responseTimes,
     problemTypes: await problemTypesPromise,
+    operators: await operatorsPromise,
   };
 }
 

@@ -5,6 +5,7 @@ import ResponseTimes from './components/ResponseTimes.vue';
 import WeeklyTrend from './components/WeeklyTrend.vue';
 import CategoryBreakdown from './components/CategoryBreakdown.vue';
 import PeriodPicker from './components/PeriodPicker.vue';
+import OperatorsTable from './components/OperatorsTable.vue';
 
 const data = ref(null);
 const loading = ref(true);
@@ -67,10 +68,6 @@ function refresh() {
         <span
           >· Обращений за выбранный период: {{ data.totalConversations }}</span
         >
-        <span v-if="data.truncated" class="warn">
-          — выборка ограничена (очень много диалогов), см. MAX_PAGES в
-          src/dashboard.js
-        </span>
         <button class="btn btn-ghost" type="button" @click="refresh">
           обновить
         </button>
@@ -79,6 +76,21 @@ function refresh() {
       <section class="card elev-sm">
         <h2>Обращения по категориям и сабкатегориям</h2>
         <CategoryBreakdown :categories="data.categories" />
+      </section>
+
+      <section class="card elev-sm">
+        <h2>Операторы</h2>
+        <p class="muted">
+          «Закрыл» — сколько раз оператор сам перевёл беседу в «Решено» за
+          выбранный период (по времени закрытия, повторное закрытие после
+          переоткрытия тоже считается). «Вёл бесед» и «Сообщений» — его ответы
+          клиентам за тот же период. Нажмите на оператора, чтобы увидеть
+          закрытия по категориям и типам проблем.
+        </p>
+        <div v-if="!data.operators" class="error">
+          Не удалось посчитать статистику операторов — подробности в логе бота.
+        </div>
+        <OperatorsTable v-else :report="data.operators" />
       </section>
 
       <section class="card elev-sm">
