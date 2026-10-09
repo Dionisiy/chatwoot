@@ -22,7 +22,9 @@ const close = () => toggle(false);
 const onSelected = problemType => {
   close();
   useAlert(
-    t('CONVERSATION.PROBLEM_TYPE.CHANGED', { name: problemType?.name || '' })
+    problemType
+      ? t('CONVERSATION.PROBLEM_TYPE.CHANGED', { name: problemType.name })
+      : t('CONVERSATION.PROBLEM_TYPE.RESET_DONE')
   );
 };
 </script>

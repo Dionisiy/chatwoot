@@ -93,13 +93,21 @@ const hasAnyItems = computed(() =>
   groups.value.some(group => group.items.length)
 );
 
+// Сброс доступен только у незакрытой беседы: закрытая без типа выпала бы
+// из отчёта в «Не указано», хотя её разбирал оператор. Сменить тип у
+// закрытой беседы можно — выбором другого варианта.
+const canReset = computed(
+  () => !!currentId.value && props.conversation.status !== 'resolved'
+);
+
+// problemType = null — сбросить тип.
 const select = async problemType => {
   if (isSaving.value) return;
   isSaving.value = true;
   try {
     const saved = await store.dispatch('assignProblemType', {
       conversationId: props.conversation.id,
-      problemTypeId: problemType.id,
+      problemTypeId: problemType?.id ?? null,
     });
     emit('selected', saved);
   } catch (error) {
@@ -213,6 +221,17 @@ onMounted(() => {
               : t('CONVERSATION.PROBLEM_TYPE.CREATE', { name: query.trim() })
           }}
         </span>
+      </button>
+
+      <button
+        v-if="canReset && !query"
+        type="button"
+        class="flex items-center gap-2 px-2 py-1.5 text-sm text-left rounded-md text-n-slate-11 hover:bg-n-alpha-2 disabled:opacity-50"
+        :disabled="isSaving"
+        @click="select(null)"
+      >
+        <Icon icon="i-lucide-x" class="flex-shrink-0 size-4" />
+        <span class="truncate">{{ t('CONVERSATION.PROBLEM_TYPE.RESET') }}</span>
       </button>
     </div>
 

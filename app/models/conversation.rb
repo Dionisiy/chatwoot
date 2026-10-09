@@ -82,7 +82,8 @@ class Conversation < ApplicationRecord
   validates :uuid, uniqueness: true
   validate :validate_referer_url
   validate :problem_type_matches_labels, if: -> { problem_type_id_changed? && problem_type_id.present? }
-  validate :problem_type_required_for_agent_resolve, if: -> { will_save_change_to_status?(to: 'resolved') }
+  validate :problem_type_required_for_agent_resolve,
+           if: -> { will_save_change_to_status?(to: 'resolved') || (resolved? && problem_type_id_changed?) }
 
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
@@ -282,6 +283,9 @@ class Conversation < ApplicationRecord
   # клавиши, массового закрытия из списка и макросов. Клиент из виджета, бот
   # и автоматизации закрывают беседу без проверки — у них Current.user не
   # User, а в отчёте такие беседы попадают в «Не указано».
+  #
+  # То же правило не даёт оператору сбросить тип у уже закрытой беседы —
+  # сменить на другой можно, оставить пустым нельзя.
   #
   # Беседы без главной метки не проверяем: выбрать из пустого списка нечего.
   def problem_type_required_for_agent_resolve

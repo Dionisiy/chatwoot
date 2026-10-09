@@ -379,7 +379,9 @@
         "TITLE": "Select a problem type",
         "DESCRIPTION": "Before resolving, specify the problem the customer contacted you about. If none fits, create a new one.",
         "CANCEL": "Cancel"
-      }
+      },
+      "RESET": "Clear problem type",
+      "RESET_DONE": "Problem type cleared"
     }
   },
   "EMAIL_TRANSCRIPT": {
