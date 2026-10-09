@@ -160,7 +160,9 @@ async function getOperatorBreakdown({ since, until } = {}) {
   });
 
   replies.rows.forEach(row => {
-    const operator = operators.get(row.sender_id);
+    // messages.sender_id — bigint, драйвер pg отдаёт его строкой, а users.id —
+    // integer (число): без приведения ключи Map не совпадали бы никогда.
+    const operator = operators.get(Number(row.sender_id));
     if (!operator) return; // оператор удалён из аккаунта
     operator.messages = row.messages;
     operator.conversations = row.conversations;
