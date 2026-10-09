@@ -124,6 +124,7 @@ Rails.application.routes.draw do
             end
           end
           resources :canned_responses, only: [:index, :create, :update, :destroy]
+          resources :problem_types, only: [:index, :create]
           resources :automation_rules, only: [:index, :create, :show, :update, :destroy] do
             post :clone
           end
@@ -169,6 +170,7 @@ Rails.application.routes.draw do
               post :transcript
               post :toggle_status
               post :toggle_priority
+              post :problem_type
               post :toggle_typing_status
               post :update_last_seen
               post :unread

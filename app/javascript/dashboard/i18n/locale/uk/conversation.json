@@ -345,6 +345,23 @@
       "UNMUTE": "Unmute mic",
       "VIEW_CHAT_HISTORY": "View chat history",
       "GO_TO_CONVERSATION": "Go to conversation thread"
+    },
+    "PROBLEM_TYPE": {
+      "TITLE": "Тип проблеми",
+      "PLACEHOLDER": "Не вибрано",
+      "SEARCH_PLACEHOLDER": "Знайти або створити проблему",
+      "NO_RESULTS": "Нічого не знайдено",
+      "EMPTY_LIST": "Список порожній — почніть вводити назву, щоб створити першу проблему",
+      "CREATE": "Створити «{name}»",
+      "CREATE_IN_LABEL": "Створити «{name}» у {label}",
+      "CHANGED": "Тип проблеми: {name}",
+      "SAVE_ERROR": "Не вдалося зберегти тип проблеми",
+      "CREATE_ERROR": "Не вдалося створити тип проблеми",
+      "RESOLVE_MODAL": {
+        "TITLE": "Виберіть тип проблеми",
+        "DESCRIPTION": "Перед завершенням діалогу вкажіть, з якою проблемою звертався клієнт. Якщо відповідної немає — створіть її.",
+        "CANCEL": "Скасувати"
+      }
     }
   },
   "EMAIL_TRANSCRIPT": {

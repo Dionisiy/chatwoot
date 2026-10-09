@@ -345,6 +345,23 @@
       "UNMUTE": "Включить микрофон",
       "VIEW_CHAT_HISTORY": "Посмотреть историю чата",
       "GO_TO_CONVERSATION": "Go to conversation thread"
+    },
+    "PROBLEM_TYPE": {
+      "TITLE": "Тип проблемы",
+      "PLACEHOLDER": "Не выбран",
+      "SEARCH_PLACEHOLDER": "Найти или создать проблему",
+      "NO_RESULTS": "Ничего не найдено",
+      "EMPTY_LIST": "Список пуст — начните вводить название, чтобы создать первую проблему",
+      "CREATE": "Создать «{name}»",
+      "CREATE_IN_LABEL": "Создать «{name}» в {label}",
+      "CHANGED": "Тип проблемы: {name}",
+      "SAVE_ERROR": "Не удалось сохранить тип проблемы",
+      "CREATE_ERROR": "Не удалось создать тип проблемы",
+      "RESOLVE_MODAL": {
+        "TITLE": "Выберите тип проблемы",
+        "DESCRIPTION": "Перед завершением диалога укажите, с какой проблемой обращался клиент. Если подходящей нет — создайте её.",
+        "CANCEL": "Отмена"
+      }
     }
   },
   "EMAIL_TRANSCRIPT": {

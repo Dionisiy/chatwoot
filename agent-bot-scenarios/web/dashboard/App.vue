@@ -82,6 +82,23 @@ function refresh() {
       </section>
 
       <section class="card elev-sm">
+        <h2>Типы проблем по меткам</h2>
+        <p class="muted">
+          Тип проблемы выбирает оператор. «Не указано» — закрытые обращения без
+          типа (закрыл клиент или автоматика); открытые обращения без типа ещё
+          не разобраны и не учитываются.
+        </p>
+        <div v-if="!data.problemTypes" class="error">
+          Не удалось посчитать типы проблем — подробности в логе бота.
+        </div>
+        <CategoryBreakdown
+          v-else
+          :categories="data.problemTypes"
+          head-label="Метка / Тип проблемы"
+        />
+      </section>
+
+      <section class="card elev-sm">
         <h2>Клиент × категория</h2>
         <ClientsTable
           :clients="data.clients"

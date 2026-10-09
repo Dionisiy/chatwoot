@@ -103,6 +103,13 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     head :ok
   end
 
+  # Выбрать тип проблемы (problem_type_id) или сбросить (пустое значение).
+  # Соответствие типа меткам беседы проверяет валидация модели.
+  def problem_type
+    @conversation.update!(problem_type_id: params[:problem_type_id].presence)
+    render json: { problem_type: @conversation.problem_type&.push_event_data }
+  end
+
   def toggle_typing_status
     typing_status_manager = ::Conversations::TypingStatusManager.new(@conversation, Current.user, params)
     typing_status_manager.toggle_typing_status

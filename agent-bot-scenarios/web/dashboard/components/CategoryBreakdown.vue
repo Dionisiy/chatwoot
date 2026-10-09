@@ -2,6 +2,9 @@
 defineProps({
   // [{ name, total, subcategories: [[name, count], ...] }, ...]
   categories: { type: Array, required: true },
+  // Заголовок первой колонки — компонент используется и для категорий,
+  // и для отчёта «метка → тип проблемы».
+  headLabel: { type: String, default: 'Категория / Сабкатегория' },
 });
 </script>
 
@@ -9,7 +12,7 @@ defineProps({
   <table class="table">
     <thead>
       <tr>
-        <th>Категория / Сабкатегория</th>
+        <th>{{ headLabel }}</th>
         <th class="num">Обращений</th>
       </tr>
     </thead>

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
 import wootConstants from 'dashboard/constants/globals';
+import { needsProblemType } from 'dashboard/helper/problemTypes';
 
 export function useBulkActions() {
   const store = useStore();
@@ -171,8 +172,16 @@ export function useBulkActions() {
           const { hasMissing } = checkMissingAttributes(
             currentCustomAttributes
           );
+          // Без выбранного типа проблемы бэкенд всё равно не даст оператору
+          // закрыть беседу — пропускаем её заранее, как и беседы без
+          // обязательных атрибутов, чтобы сообщение о результате было честным.
+          const missingProblemType = needsProblemType(
+            conversation,
+            conversation?.labels || [],
+            (store.getters['labels/getLabels'] || []).map(label => label.title)
+          );
 
-          if (!hasMissing) {
+          if (!hasMissing && !missingProblemType) {
             acc.validIds.push(id);
           } else {
             acc.skippedIds.push(id);

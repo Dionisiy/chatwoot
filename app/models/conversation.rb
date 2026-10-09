@@ -81,6 +81,8 @@ class Conversation < ApplicationRecord
   validates :custom_attributes, jsonb_attributes_length: true
   validates :uuid, uniqueness: true
   validate :validate_referer_url
+  validate :problem_type_matches_labels, if: -> { problem_type_id_changed? && problem_type_id.present? }
+  validate :problem_type_required_for_agent_resolve, if: -> { will_save_change_to_status?(to: 'resolved') }
 
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
@@ -118,6 +120,7 @@ class Conversation < ApplicationRecord
   belongs_to :contact_inbox
   belongs_to :team, optional: true
   belongs_to :campaign, optional: true
+  belongs_to :problem_type, optional: true
 
   has_many :mentions, dependent: :destroy_async
   has_many :messages, dependent: :destroy_async, autosave: true
@@ -130,6 +133,7 @@ class Conversation < ApplicationRecord
 
   before_save :ensure_snooze_until_reset
   before_save :set_status_changed_at
+  before_save :reset_problem_type_on_label_change, if: -> { problem_type_id.present? && changes.key?('label_list') }
   before_create :determine_conversation_status
   before_create :ensure_waiting_since
 
@@ -258,7 +262,43 @@ class Conversation < ApplicationRecord
     dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
   end
 
+  # Главные метки беседы, к которым привязаны списки типов проблем
+  # (см. ProblemTypes::RootLabels).
+  def problem_type_root_labels
+    ProblemTypes::RootLabels.for(account, label_list)
+  end
+
   private
+
+  def problem_type_matches_labels
+    return if problem_type.account_id == account_id && problem_type_root_labels.include?(problem_type.label_title)
+
+    errors.add(:problem_type, :invalid)
+  end
+
+  # Оператор не может закрыть беседу, не выбрав тип проблемы, — иначе отчёт
+  # по типам выходит дырявым. Проверяем именно действия живого оператора
+  # (Current.user — User): так правило одинаково работает для кнопки, горячей
+  # клавиши, массового закрытия из списка и макросов. Клиент из виджета, бот
+  # и автоматизации закрывают беседу без проверки — у них Current.user не
+  # User, а в отчёте такие беседы попадают в «Не указано».
+  #
+  # Беседы без главной метки не проверяем: выбрать из пустого списка нечего.
+  def problem_type_required_for_agent_resolve
+    return unless Current.user.is_a?(User)
+    return if problem_type_id.present?
+    return if problem_type_root_labels.empty?
+
+    errors.add(:problem_type, :blank)
+  end
+
+  # Сменили главную метку — тип прежней метки к беседе больше не относится.
+  # Сбрасываем, и оператор выберет тип из списка новой метки.
+  def reset_problem_type_on_label_change
+    return if problem_type_root_labels.include?(problem_type&.label_title)
+
+    self.problem_type_id = nil
+  end
 
   def execute_after_update_commit_callbacks
     handle_resolved_status_change
@@ -337,7 +377,7 @@ class Conversation < ApplicationRecord
 
   def list_of_keys
     %w[team_id assignee_id assignee_agent_bot_id status snoozed_until custom_attributes label_list waiting_since
-       first_reply_created_at priority]
+       first_reply_created_at priority problem_type_id]
   end
 
   def allowed_keys?

@@ -10,6 +10,8 @@ import { CONVERSATION_PRIORITY } from '../../../../shared/constants/messages';
 import { CONVERSATION_EVENTS } from '../../../helper/AnalyticsHelper/events';
 import { useTrack } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import ProblemTypeSelect from './problemType/ProblemTypeSelect.vue';
+import { rootLabelsOf } from 'dashboard/helper/problemTypes';
 
 export default {
   components: {
@@ -17,6 +19,7 @@ export default {
     MultiselectDropdown,
     ConversationLabels,
     NextButton,
+    ProblemTypeSelect,
   },
   props: {
     conversationId: {
@@ -66,7 +69,24 @@ export default {
       currentChat: 'getSelectedChat',
       currentUser: 'getCurrentUser',
       teams: 'teams/getTeams',
+      accountLabels: 'labels/getLabels',
     }),
+    // Поле «Тип проблемы» показываем, только когда у беседы есть главная
+    // метка: списки типов привязаны к ним (см. helper/problemTypes.js).
+    hasProblemTypeRoots() {
+      return (
+        rootLabelsOf(
+          // Метки из модуля conversationLabels обновляются сразу при правке в
+          // панели; currentChat.labels — только после realtime-события.
+          this.$store.state.conversationLabels.records[
+            Number(this.currentChat.id)
+          ] ??
+            this.currentChat.labels ??
+            [],
+          this.accountLabels.map(label => label.title)
+        ).length > 0
+      );
+    },
     hasAnAssignedTeam() {
       return !!this.currentChat?.meta?.team;
     },
@@ -297,6 +317,13 @@ export default {
         "
         @select="onClickAssignPriority"
       />
+    </div>
+    <div v-if="hasProblemTypeRoots">
+      <ContactDetailsItem
+        compact
+        :title="$t('CONVERSATION.PROBLEM_TYPE.TITLE')"
+      />
+      <ProblemTypeSelect :conversation="currentChat" />
     </div>
     <ContactDetailsItem
       compact

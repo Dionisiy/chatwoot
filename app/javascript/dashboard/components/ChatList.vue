@@ -17,6 +17,8 @@ import DeleteCustomViews from 'dashboard/routes/dashboard/customviews/DeleteCust
 import ConversationBulkActions from './widgets/conversation/conversationBulkActions/Index.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
+import ProblemTypeResolveModal from 'dashboard/routes/dashboard/conversation/problemType/ProblemTypeResolveModal.vue';
+import { needsProblemType } from 'dashboard/helper/problemTypes';
 
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
@@ -71,6 +73,9 @@ const route = useRoute();
 const store = useStore();
 
 const resolveAttributesModalRef = ref(null);
+const problemTypeModalRef = ref(null);
+// Закрытие, отложенное до выбора типа проблемы в окне.
+const pendingProblemTypeResolve = ref(null);
 
 const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ME);
 const activeStatus = ref(wootConstants.STATUS_TYPE.OPEN);
@@ -110,6 +115,7 @@ const currentAccountId = useMapGetter('getCurrentAccountId');
 // We can't useFunctionGetter here since it needs to be called on setup?
 const getTeamFn = useMapGetter('teams/getTeam');
 const getConversationById = useMapGetter('getConversationById');
+const accountLabels = useMapGetter('labels/getLabels');
 
 const {
   selectedConversations,
@@ -756,6 +762,19 @@ function handleResolveConversation(conversationId, status, snoozedUntil) {
 
   // Check for required attributes before resolving
   const conversation = getConversationById.value(conversationId);
+
+  // Тип проблемы обязателен для закрытия оператором — так же, как кнопка
+  // «Решить» в шапке беседы (см. ResolveAction.vue).
+  const conversationLabels =
+    store.state.conversationLabels.records[Number(conversationId)] ??
+    conversation?.labels ??
+    [];
+  const allTitles = (accountLabels.value || []).map(label => label.title);
+  if (needsProblemType(conversation, conversationLabels, allTitles)) {
+    pendingProblemTypeResolve.value = { conversationId, snoozedUntil };
+    problemTypeModalRef.value?.open(conversation);
+    return;
+  }
   const currentCustomAttributes = conversation?.custom_attributes || {};
   const { hasMissing, missing } = checkMissingAttributes(
     currentCustomAttributes
@@ -775,6 +794,17 @@ function handleResolveConversation(conversationId, status, snoozedUntil) {
   } else {
     toggleConversationStatus(conversationId, status, snoozedUntil);
   }
+}
+
+function onProblemTypeSelected() {
+  const pending = pendingProblemTypeResolve.value;
+  pendingProblemTypeResolve.value = null;
+  if (!pending) return;
+  handleResolveConversation(
+    pending.conversationId,
+    wootConstants.STATUS_TYPE.RESOLVED,
+    pending.snoozedUntil
+  );
 }
 
 function handleResolveWithAttributes({ attributes, context }) {
@@ -996,6 +1026,10 @@ watch(conversationFilters, (newVal, oldVal) => {
     <ConversationResolveAttributesModal
       ref="resolveAttributesModalRef"
       @submit="handleResolveWithAttributes"
+    />
+    <ProblemTypeResolveModal
+      ref="problemTypeModalRef"
+      @selected="onProblemTypeSelected"
     />
   </div>
 </template>

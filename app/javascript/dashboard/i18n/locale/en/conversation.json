@@ -363,6 +363,23 @@
       "UNMUTE": "Unmute mic",
       "VIEW_CHAT_HISTORY": "View chat history",
       "GO_TO_CONVERSATION": "Go to conversation thread"
+    },
+    "PROBLEM_TYPE": {
+      "TITLE": "Problem type",
+      "PLACEHOLDER": "Not selected",
+      "SEARCH_PLACEHOLDER": "Search or create a problem",
+      "NO_RESULTS": "No results found",
+      "EMPTY_LIST": "The list is empty — start typing to create the first problem",
+      "CREATE": "Create \"{name}\"",
+      "CREATE_IN_LABEL": "Create \"{name}\" in {label}",
+      "CHANGED": "Problem type: {name}",
+      "SAVE_ERROR": "Could not save the problem type",
+      "CREATE_ERROR": "Could not create the problem type",
+      "RESOLVE_MODAL": {
+        "TITLE": "Select a problem type",
+        "DESCRIPTION": "Before resolving, specify the problem the customer contacted you about. If none fits, create a new one.",
+        "CANCEL": "Cancel"
+      }
     }
   },
   "EMAIL_TRANSCRIPT": {

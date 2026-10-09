@@ -19,6 +19,8 @@ import {
 import ButtonGroup from 'dashboard/components-next/buttonGroup/ButtonGroup.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
+import ProblemTypeResolveModal from 'dashboard/routes/dashboard/conversation/problemType/ProblemTypeResolveModal.vue';
+import { needsProblemType as conversationNeedsProblemType } from 'dashboard/helper/problemTypes';
 
 const store = useStore();
 const getters = useStoreGetters();
@@ -28,6 +30,7 @@ const { checkMissingAttributes } = useConversationRequiredAttributes();
 const arrowDownButtonRef = ref(null);
 const isLoading = ref(false);
 const resolveAttributesModalRef = ref(null);
+const problemTypeModalRef = ref(null);
 
 const [showActionsDropdown, toggleDropdown] = useToggle();
 const closeDropdown = () => toggleDropdown(false);
@@ -117,7 +120,27 @@ const onCmdOpenConversation = () => {
   toggleStatus(wootConstants.STATUS_TYPE.OPEN);
 };
 
+// Тип проблемы обязателен для закрытия оператором, если у беседы есть
+// главная метка (бэкенд проверяет то же самое — см.
+// Conversation#problem_type_required_for_agent_resolve). Проверяем заранее,
+// чтобы вместо ошибки показать окно выбора.
+const needsProblemType = () => {
+  const chat = currentChat.value;
+  return conversationNeedsProblemType(
+    chat,
+    store.state.conversationLabels.records[Number(chat.id)] ??
+      chat.labels ??
+      [],
+    (getters['labels/getLabels'].value || []).map(label => label.title)
+  );
+};
+
 const onCmdResolveConversation = () => {
+  if (needsProblemType()) {
+    problemTypeModalRef.value?.open(currentChat.value);
+    return;
+  }
+
   const currentCustomAttributes = currentChat.value.custom_attributes || {};
   const { hasMissing, missing } = checkMissingAttributes(
     currentCustomAttributes
@@ -253,6 +276,12 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
     <ConversationResolveAttributesModal
       ref="resolveAttributesModalRef"
       @submit="handleResolveWithAttributes"
+    />
+    <!-- Тип выбран и сохранён — продолжаем закрытие обычным путём (там же
+         штатная проверка обязательных атрибутов). -->
+    <ProblemTypeResolveModal
+      ref="problemTypeModalRef"
+      @selected="onCmdResolveConversation"
     />
   </div>
 </template>

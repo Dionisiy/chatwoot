@@ -571,6 +571,17 @@ const actions = {
     }
   },
 
+  // В отличие от assignPriority ошибку не глотаем: вызывающему (выпадающий
+  // список типа проблемы, окно перед закрытием) нужно знать, что тип не
+  // сохранился, — иначе следом ушёл бы запрос на закрытие и упал бы уже он.
+  assignProblemType: async ({ commit }, { conversationId, problemTypeId }) => {
+    const {
+      data: { problem_type: problemType },
+    } = await ConversationApi.setProblemType({ conversationId, problemTypeId });
+    commit(types.ASSIGN_PROBLEM_TYPE, { problemType, conversationId });
+    return problemType;
+  },
+
   setCurrentChatPriority({ commit }, { priority, conversationId }) {
     commit(types.ASSIGN_PRIORITY, { priority, conversationId });
   },

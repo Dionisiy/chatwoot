@@ -137,6 +137,11 @@ export const mutations = {
     chat.priority = priority;
   },
 
+  [types.ASSIGN_PROBLEM_TYPE](_state, { problemType, conversationId }) {
+    const chat = _state.allConversations.find(c => c.id === conversationId);
+    if (chat) chat.problem_type = problemType;
+  },
+
   [types.UPDATE_CONVERSATION_CUSTOM_ATTRIBUTES](
     _state,
     { conversationId, customAttributes }

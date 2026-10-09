@@ -15,6 +15,8 @@
 // категорий они неполные. Метки же проставляются во всех ветках сценария
 // без исключений (см. AGENTS.md).
 
+const { getProblemTypeBreakdown } = require('./problemTypeReport');
+
 const MAX_PAGES = 40; // ~1000 диалогов при 25/страницу — защита от рантайма
 // на очень больших аккаунтах; поднимите при необходимости.
 
@@ -52,7 +54,8 @@ function inRange(conv, since, until) {
 // ограничения видимости категорий для операторов.
 function deriveCategory(labels) {
   const list = Array.isArray(labels) ? labels : labels ? [labels] : [];
-  if (list.length === 0) return { category: 'Без категории', subcategory: null };
+  if (list.length === 0)
+    return { category: 'Без категории', subcategory: null };
 
   for (const a of list) {
     const sub = list.find(b => b !== a && b.startsWith(`${a}-`));
@@ -98,16 +101,22 @@ function aggregate(conversations) {
     const weekMap = byWeek.get(week);
     weekMap.set(category, (weekMap.get(category) || 0) + 1);
 
-    if (!byCategory.has(category)) byCategory.set(category, { total: 0, subcategories: new Map() });
+    if (!byCategory.has(category))
+      byCategory.set(category, { total: 0, subcategories: new Map() });
     const catEntry = byCategory.get(category);
     catEntry.total += 1;
     if (subcategory) {
-      catEntry.subcategories.set(subcategory, (catEntry.subcategories.get(subcategory) || 0) + 1);
+      catEntry.subcategories.set(
+        subcategory,
+        (catEntry.subcategories.get(subcategory) || 0) + 1
+      );
     }
   });
 
   const clients = [...byContact.values()].sort((a, b) => b.total - a.total);
-  const weeklyTrend = [...byWeek.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const weeklyTrend = [...byWeek.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
   const categories = [...byCategory.entries()]
     .map(([name, v]) => ({
       name,
@@ -116,7 +125,12 @@ function aggregate(conversations) {
     }))
     .sort((a, b) => b.total - a.total);
 
-  return { clients, weeklyTrend, categoryNames: [...categoryNames].sort(), categories };
+  return {
+    clients,
+    weeklyTrend,
+    categoryNames: [...categoryNames].sort(),
+    categories,
+  };
 }
 
 // since/until — то же окно, что выбрано в UI дашборда, для отчётов по
@@ -125,7 +139,10 @@ function aggregate(conversations) {
 // рабочие часы, переназначения и т.п.). Chatwoot-отчёты требуют оба конца
 // диапазона — при "весь период" (since/until не заданы с UI) явно
 // подставляем epoch..сейчас, иначе API отчётов молча возвращает нули.
-async function getResponseTimeSummary(client, { since, until, categoryNames } = {}) {
+async function getResponseTimeSummary(
+  client,
+  { since, until, categoryNames } = {}
+) {
   const range = {
     since: since || 0,
     until: until || Math.floor(Date.now() / 1000),
@@ -147,10 +164,17 @@ async function getResponseTimeSummary(client, { since, until, categoryNames } = 
 
     try {
       // eslint-disable-next-line no-await-in-loop
-      const summary = await client.getReportSummary({ ...range, type: 'label', id: label.id });
+      const summary = await client.getReportSummary({
+        ...range,
+        type: 'label',
+        id: label.id,
+      });
       perCategory.push({ name, ...summary });
     } catch (err) {
-      console.error(`[dashboard] getReportSummary(label=${name}) failed:`, err.message);
+      console.error(
+        `[dashboard] getReportSummary(label=${name}) failed:`,
+        err.message
+      );
     }
   }
 
@@ -158,11 +182,28 @@ async function getResponseTimeSummary(client, { since, until, categoryNames } = 
 }
 
 async function buildDashboardData(client, { since, until } = {}) {
+  // Отчёт по типам проблем идёт прямым запросом в базу и от API не зависит —
+  // запускаем параллельно с выкачкой бесед. Его падение не должно ронять
+  // весь дашборд: остальные разделы считаются без него.
+  const problemTypesPromise = getProblemTypeBreakdown({ since, until }).catch(
+    err => {
+      console.error('[dashboard] problem types failed:', err.message);
+      return null;
+    }
+  );
   const allConversations = await fetchAllConversations(client);
-  const conversations = since || until ? allConversations.filter(c => inRange(c, since, until)) : allConversations;
+  const conversations =
+    since || until
+      ? allConversations.filter(c => inRange(c, since, until))
+      : allConversations;
 
-  const { clients, weeklyTrend, categoryNames, categories } = aggregate(conversations);
-  const responseTimes = await getResponseTimeSummary(client, { since, until, categoryNames });
+  const { clients, weeklyTrend, categoryNames, categories } =
+    aggregate(conversations);
+  const responseTimes = await getResponseTimeSummary(client, {
+    since,
+    until,
+    categoryNames,
+  });
 
   return {
     generatedAt: new Date().toISOString(),
@@ -174,6 +215,7 @@ async function buildDashboardData(client, { since, until } = {}) {
     clients,
     weeklyTrend,
     responseTimes,
+    problemTypes: await problemTypesPromise,
   };
 }
 
