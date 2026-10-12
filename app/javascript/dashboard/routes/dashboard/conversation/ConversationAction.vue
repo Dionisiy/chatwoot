@@ -11,7 +11,10 @@ import { CONVERSATION_EVENTS } from '../../../helper/AnalyticsHelper/events';
 import { useTrack } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ProblemTypeSelect from './problemType/ProblemTypeSelect.vue';
-import { rootLabelsOf } from 'dashboard/helper/problemTypes';
+import {
+  rootLabelsOf,
+  hasOnlyExemptRoots,
+} from 'dashboard/helper/problemTypes';
 
 export default {
   components: {
@@ -71,20 +74,33 @@ export default {
       teams: 'teams/getTeams',
       accountLabels: 'labels/getLabels',
     }),
-    // Поле «Тип проблемы» показываем, только когда у беседы есть главная
-    // метка: списки типов привязаны к ним (см. helper/problemTypes.js).
+    conversationLabelTitles() {
+      // Метки из модуля conversationLabels обновляются сразу при правке в
+      // панели; currentChat.labels — только после realtime-события.
+      return (
+        this.$store.state.conversationLabels.records[
+          Number(this.currentChat.id)
+        ] ??
+        this.currentChat.labels ??
+        []
+      );
+    },
+    accountLabelTitles() {
+      return this.accountLabels.map(label => label.title);
+    },
+    // Поле «Тип проблемы» с выбором — когда у беседы есть главная метка со
+    // списком типов (см. helper/problemTypes.js).
     hasProblemTypeRoots() {
       return (
-        rootLabelsOf(
-          // Метки из модуля conversationLabels обновляются сразу при правке в
-          // панели; currentChat.labels — только после realtime-события.
-          this.$store.state.conversationLabels.records[
-            Number(this.currentChat.id)
-          ] ??
-            this.currentChat.labels ??
-            [],
-          this.accountLabels.map(label => label.title)
-        ).length > 0
+        rootLabelsOf(this.conversationLabelTitles, this.accountLabelTitles)
+          .length > 0
+      );
+    },
+    // Только финансы: тип не выбирается, показываем «Не определено».
+    hasOnlyExemptProblemTypeRoots() {
+      return hasOnlyExemptRoots(
+        this.conversationLabelTitles,
+        this.accountLabelTitles
       );
     },
     hasAnAssignedTeam() {
@@ -324,6 +340,15 @@ export default {
         :title="$t('CONVERSATION.PROBLEM_TYPE.TITLE')"
       />
       <ProblemTypeSelect :conversation="currentChat" />
+    </div>
+    <div v-else-if="hasOnlyExemptProblemTypeRoots">
+      <ContactDetailsItem
+        compact
+        :title="$t('CONVERSATION.PROBLEM_TYPE.TITLE')"
+      />
+      <p class="px-2 mb-2 text-sm text-n-slate-10">
+        {{ $t('CONVERSATION.PROBLEM_TYPE.NOT_DEFINED') }}
+      </p>
     </div>
     <ContactDetailsItem
       compact

@@ -381,7 +381,8 @@
         "CANCEL": "Cancel"
       },
       "RESET": "Clear problem type",
-      "RESET_DONE": "Problem type cleared"
+      "RESET_DONE": "Problem type cleared",
+      "NOT_DEFINED": "Not defined"
     }
   },
   "EMAIL_TRANSCRIPT": {

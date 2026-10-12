@@ -12,11 +12,31 @@ export const rootLabelOf = (title, allTitles) =>
     )
     .sort((a, b) => a.length - b.length)[0] || null;
 
-export const rootLabelsOf = (titles = [], allTitles = []) => [
+// Главные метки без типов проблем: у финансов классификацию дают подметки
+// finance-*, тип там не выбирается и не требуется — беседа считается
+// «Не определено». Зеркалит ProblemTypes::RootLabels::EXEMPT на бэкенде.
+export const EXEMPT_ROOT_LABELS = ['finance'];
+
+const allRootLabelsOf = (titles = [], allTitles = []) => [
   ...new Set(
     titles.map(title => rootLabelOf(title, allTitles)).filter(Boolean)
   ),
 ];
+
+// Главные метки беседы, для которых выбирается тип проблемы.
+export const rootLabelsOf = (titles = [], allTitles = []) =>
+  allRootLabelsOf(titles, allTitles).filter(
+    root => !EXEMPT_ROOT_LABELS.includes(root)
+  );
+
+// Беседа только с метками без типов (например, только finance-*): поле
+// показываем, но с фиксированным «Не определено» вместо выбора.
+export const hasOnlyExemptRoots = (titles = [], allTitles = []) => {
+  const roots = allRootLabelsOf(titles, allTitles);
+  return (
+    roots.length > 0 && roots.every(root => EXEMPT_ROOT_LABELS.includes(root))
+  );
+};
 
 // Нужно ли выбрать тип проблемы перед закрытием оператором: тип не выбран,
 // а у беседы есть главная метка (иначе выбирать не из чего). Зеркалит

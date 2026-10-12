@@ -73,12 +73,13 @@ class Api::V1::Accounts::ProblemTypesController < Api::V1::Accounts::BaseControl
     @problem_type = Current.account.problem_types.find(params[:id])
   end
 
-  # Тип создаётся только для существующей главной метки — иначе в справочнике
-  # появились бы записи, которые нигде не показать.
+  # Тип создаётся только для существующей главной метки, у которой типы есть
+  # (не EXEMPT), — иначе в справочнике появились бы записи, которые нигде не
+  # показать.
   def root_label_title
     title = params.require(:label_title)
     root = ProblemTypes::RootLabels.root_of(title, Current.account.labels.pluck(:title))
-    raise ActiveRecord::RecordNotFound, "Label #{title} not found" if root.nil?
+    raise ActiveRecord::RecordNotFound, "Label #{title} not found" if root.nil? || ProblemTypes::RootLabels::EXEMPT.include?(root)
 
     root
   end

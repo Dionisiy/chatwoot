@@ -363,7 +363,8 @@
         "CANCEL": "Отмена"
       },
       "RESET": "Сбросить тип",
-      "RESET_DONE": "Тип проблемы сброшен"
+      "RESET_DONE": "Тип проблемы сброшен",
+      "NOT_DEFINED": "Не определено"
     }
   },
   "EMAIL_TRANSCRIPT": {

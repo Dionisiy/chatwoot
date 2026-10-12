@@ -8,10 +8,18 @@
 #
 # Та же логика продублирована во фронтенде (dashboard/helper/problemTypes.js) —
 # при правке менять оба места.
+#
+# Метки без типов проблем (EXEMPT): у финансов классификацию дают подметки
+# finance-payment, finance-docs и т.д., поэтому тип там не выбирается и не
+# требуется — такая беседа считается «Не определено». Список продублирован
+# во фронтенде и в отчёте дашборда (agent-bot-scenarios/src/problemTypeReport.js).
 class ProblemTypes::RootLabels
+  EXEMPT = %w[finance].freeze
+
+  # Главные метки беседы, для которых выбирается тип проблемы (без EXEMPT).
   def self.for(account, titles)
     all_titles = account.labels.pluck(:title)
-    Array(titles).filter_map { |title| root_of(title, all_titles) }.uniq
+    Array(titles).filter_map { |title| root_of(title, all_titles) }.uniq - EXEMPT
   end
 
   def self.root_of(title, all_titles)

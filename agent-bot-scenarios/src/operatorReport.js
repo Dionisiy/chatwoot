@@ -156,7 +156,7 @@ async function getOperatorBreakdown({ since, until } = {}) {
     }
     const entry = operator.categories.get(category);
     entry.total += 1;
-    bump(entry.problemTypes, row.problem_type || 'Не указано');
+    bump(entry.problemTypes, row.problem_type || 'Не определено');
   });
 
   replies.rows.forEach(row => {
