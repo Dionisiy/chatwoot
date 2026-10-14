@@ -28,6 +28,9 @@ const CONTACT_RESOLVED_PATTERNS = [
   /^Діалог був закритий /,
 ];
 
+// Метки без типов проблем — зеркало ProblemTypes::RootLabels::EXEMPT.
+const EXEMPT_ROOT_LABELS = ['finance'];
+
 const OTHER_BUCKETS = {
   Contact: 'Клиент (закрыл сам)',
   AgentBot: 'Бот',
@@ -132,7 +135,8 @@ async function getOperatorBreakdown({ since, until } = {}) {
         resolved: 0,
         conversations: 0,
         messages: 0,
-        categories: new Map(), // категория -> { total, problemTypes: Map }
+        // категория -> { total, subcategories: Map, problemTypes: Map }
+        categories: new Map(),
       },
     ])
   );
@@ -152,11 +156,22 @@ async function getOperatorBreakdown({ since, until } = {}) {
       .filter(Boolean);
     const category = categoryOf(labelList, allTitles);
     if (!operator.categories.has(category)) {
-      operator.categories.set(category, { total: 0, problemTypes: new Map() });
+      operator.categories.set(category, {
+        total: 0,
+        subcategories: new Map(),
+        problemTypes: new Map(),
+      });
     }
     const entry = operator.categories.get(category);
     entry.total += 1;
-    bump(entry.problemTypes, row.problem_type || 'Не определено');
+    // Подметка (finance-fop и т.п.) — уточнение категории. У финансов это
+    // единственная классификация: типов проблем там нет (EXEMPT), поэтому
+    // без подметок раскрытие показывало бы только «finance».
+    const subcategory = labelList.find(l => l.startsWith(`${category}-`));
+    if (subcategory) bump(entry.subcategories, subcategory);
+    if (!EXEMPT_ROOT_LABELS.includes(category)) {
+      bump(entry.problemTypes, row.problem_type || 'Не определено');
+    }
   });
 
   replies.rows.forEach(row => {
@@ -177,6 +192,7 @@ async function getOperatorBreakdown({ since, until } = {}) {
           .map(([name, v]) => ({
             name,
             total: v.total,
+            subcategories: [...v.subcategories.entries()].sort(byCount),
             problemTypes: [...v.problemTypes.entries()].sort(byCount),
           }))
           .sort((a, b) => b.total - a.total),

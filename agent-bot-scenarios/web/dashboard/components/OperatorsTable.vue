@@ -64,11 +64,21 @@ function toggle(id) {
               </td>
               <td colspan="2" />
             </tr>
+            <!-- Подметки (finance-fop…) — уточнение категории; у финансов
+                 это единственная разбивка, типов проблем там нет. -->
+            <tr
+              v-for="[sub, count] in cat.subcategories"
+              :key="`${op.id}-${cat.name}-sub-${sub}`"
+            >
+              <td class="indent-2">{{ sub }}</td>
+              <td class="num">{{ count }}</td>
+              <td colspan="2" />
+            </tr>
             <tr
               v-for="[type, count] in cat.problemTypes"
               :key="`${op.id}-${cat.name}-${type}`"
             >
-              <td class="indent-2">{{ type }}</td>
+              <td class="indent-2 problem-type">{{ type }}</td>
               <td class="num muted">{{ count }}</td>
               <td colspan="2" />
             </tr>
@@ -111,6 +121,9 @@ function toggle(id) {
 .indent-2 {
   padding-left: calc(var(--space-4) * 3.5);
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+.problem-type {
+  font-style: italic;
 }
 .category-row td {
   font-weight: 500;
