@@ -84,7 +84,7 @@ AgentBotInbox.create!(inbox: inbox, agent_bot: bot)
 ## 2. Заполнить `.env`
 
 ```
-CHATWOOT_BASE_URL=http://localhost:3000        # или http://188.166.123.233:3001 на дроплете
+CHATWOOT_BASE_URL=http://localhost:3000        # или https://chat.example.com на дроплете
 CHATWOOT_ACCOUNT_ID=1
 CHATWOOT_BOT_TOKEN=<bot.access_token.token>
 AGENT_BOT_SECRET=<bot.secret>
